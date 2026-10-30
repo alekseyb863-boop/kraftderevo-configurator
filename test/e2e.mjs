@@ -1,5 +1,5 @@
 // E2E (Playwright, headless Chromium) по собранной странице (`npm run build` -> vite preview):
-//  для каждого из 13 артикулов: выбрать плитку, проверить SVG/заголовок/строки, подвигать ползунок, сменить профиль/полосу и цвет,
+//  для каждого из 15 артикулов: выбрать плитку, проверить SVG/заголовок/строки, подвигать ползунок, сменить профиль/полосу и цвет,
 //  проверить проверку пересечений (из воркера + независимая проверка в странице), сохранить скриншот screens/<артикул>.png;
 //  плюс: валидация недопустимых значений, скачивание PNG/PDF/STL, ошибки консоли.
 //  Запуск: npm run build && npm test     (CHROME_PATH=/usr/bin/google-chrome — системный Chrome)
@@ -27,8 +27,8 @@ try {
   await page.waitForSelector("#view svg", { timeout: 90000 });
   console.log("первая отрисовка через", Date.now() - t0, "мс");
   const tiles = await page.$$eval("#tiles .tile", (t) => t.map((x) => x.dataset.article));
-  const EXPECT = ["H031", "H114", "H005", "H050", "H027-1", "H112", "H028", "H030-2", "H043", "H038", "H098", "0090", "0011"];
-  ok(JSON.stringify(tiles) === JSON.stringify(EXPECT), "плитки: все 13 артикулов в нужном порядке: " + tiles.join(" "));
+  const EXPECT = ["H031", "H114", "H005", "H050", "H027-1", "H112", "H028", "H030-2", "H043", "H038", "H098", "0090", "0011", "V006-2", "V004"];
+  ok(JSON.stringify(tiles) === JSON.stringify(EXPECT), "плитки: все 15 артикулов в нужном порядке: " + tiles.join(" "));
 
   const lastP = () => page.evaluate(() => JSON.parse(JSON.stringify({ ...window.__configurator.last, svg: undefined })));
   const waitLast = (pred, arg, timeout = 60000) => page.waitForFunction(`(() => { const l = window.__configurator.last; return !!l && (${pred})(l, ${JSON.stringify(arg)}); })()`, null, { timeout });
@@ -62,7 +62,7 @@ try {
     const svgInfo = await page.$eval("#view svg", (s) => ({ lines: s.querySelectorAll("#geometry polyline").length, dims: s.querySelectorAll(".dim-label").length, vb: s.getAttribute("viewBox"), bg: s.querySelector("rect").getAttribute("fill") }));
     ok(svgInfo.lines > 10 && svgInfo.dims >= 1 && svgInfo.bg === "#fff", `${id}: SVG отрисован (${svgInfo.lines} линий, ${svgInfo.dims} размеров, белый фон, viewBox ${svgInfo.vb})`);
     const [title, line2, ...rest] = tx.filter((t, i) => i >= tx.findIndex((x) => /Н|\u041D/.test(x)) && true).filter((t) => !t.endsWith(" мм") || /:|Профиль|Полоса/.test(t));
-    ok(/^(Опора|Ножка|Подстолье) /.test(title) && (id === "H098" || id.startsWith("00") || title.includes("\u041D")) && title.endsWith(id.replace(/^H/, "")) , `${id}: заголовок «${title}» (кириллическая Н: ${id.startsWith("H") ? title.includes("\u041D") : "n/a"})`);
+    ok(/^(Опора|Ножка|Подстолье|Рейл) /.test(title) && (id === "H098" || id.startsWith("00") || title.includes("\u041D") || title.includes("\u0412")) && title.endsWith(id.replace(/^[HV]/, "")) , `${id}: заголовок «${title}» (кириллическая Н/В: ${id.startsWith("H") ? title.includes("\u041D") : id.startsWith("V") ? title.includes("\u0412") : "n/a"})`);
     ok(/^(Профиль|Полоса) \d+×\d+ мм/.test(line2) && !tx.some((t) => /сплошн/i.test(t)), `${id}: вторая строка «${line2}», слова «сплошной» нет`);
     ok(tx.some((t) => /^Цвет: .+/.test(t)), `${id}: есть строка «Цвет: …»`);
     const ov = async (tag) => { const o = await page.getAttribute("#checks", "data-overlap"), s = await page.getAttribute("#checks", "data-solid"), d = await domOverlap(); ok(o === "OK" && s === "OK" && d.bad.length === 0 && d.labelHits === 0, `${id}${tag}: проверка пересечений OK (воркер: ${o}; в странице: ${d.rects} строк × ${d.segs} отрезков, пересечений ${d.bad.length}, подписи×геометрия ${d.labelHits}); тело: ${s}`); };
