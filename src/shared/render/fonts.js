@@ -5,10 +5,19 @@ import opentype from "opentype.js";
 const fonts = { regular: null, bold: null };
 export function setFonts(regular, bold) {
   fonts.regular = opentype.parse(regular); fonts.bold = opentype.parse(bold);
+  cache.clear();
 }
 const F = (bold) => { const f = fonts[bold ? "bold" : "regular"]; if (!f) throw new Error("fonts are not loaded: call setFonts()"); return f; };
+// The auto-layout search rebuilds every dimension (and so re-lays out the same few strings) hundreds of times: results are memoized per (string, size, x, baseline, bold).
+const cache = new Map();
 // glyph-by-glyph layout (cmap + advance + kerning); avoids opentype.js GSUB shaping
 function layout(str, px, bold, x0 = 0, baseline = 0, wantPath = false) {
+  const key = `${wantPath ? 1 : 0}|${bold ? 1 : 0}|${px}|${x0}|${baseline}|${str}`;
+  let r = cache.get(key);
+  if (!r) { r = layoutRaw(str, px, bold, x0, baseline, wantPath); if (cache.size > 5000) cache.clear(); cache.set(key, r); }
+  return r;
+}
+function layoutRaw(str, px, bold, x0, baseline, wantPath) {
   const font = F(bold), k = px / font.unitsPerEm;
   let x = 0, prev = null, box = null; const d = [];
   for (const ch of str) {

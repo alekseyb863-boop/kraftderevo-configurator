@@ -82,6 +82,9 @@ export function buildDrawing({ solid, view, layout, makeDims, textLines, auto = 
     const build = () => dims.map((d, i) => buildDim({ ...d, shift: shifts[i] }, { P2: proj.P2, toPx, scale: L.scale, style, occ: proj.occ }));
     const run = () => { const built = build(); return { built, check: overlapCheck({ geom, dims: built, header, W, H, margin }) }; };
     let cur = run();
+    // part of the score that moving the labels can never change (header vs geometry / dimension lines / header, header outside the page)
+    const fixed = (c) => c.hdrVsLines + c.hdrVsDimSegs + c.hdrVsHdr + c.outside.filter((o) => !o.startsWith("dim:")).length;
+    const finish = () => {
     if (search && !cur.check.ok) {
       // coordinate descent: slide every dimension label along its line to the position with the fewest conflicts
       for (let pass = 0; pass < 3 && !cur.check.ok; pass++) {
@@ -103,18 +106,26 @@ export function buildDrawing({ solid, view, layout, makeDims, textLines, auto = 
       }
     }
     return { ...cur, geom, header, W, H, style, toPx, layoutName, k, shrink, shifts, sc: score(cur.check) };
+    };
+    // search can only help if the unfixable part of the score is zero; otherwise it is deferred (see buildDrawing)
+    return { sc0: score(cur.check), hopeless: !!search && fixed(cur.check) > 0, finish };
   };
   const tries = auto
     ? [[layout, 1, 1, false], [layout, 1, 1, true], [layout, 1.5, 1, true], [layout, 2, 1, true],
        ["forms", 1, 1, true], ["forms", 1.5, 1, true], ["forms", 1, 0.85, true], ["forms", 1.5, 0.85, true], ["forms", 1.5, 0.7, true], ["forms", 2, 0.7, true]]
     : [[layout, 1, 1, false]];
-  let best = null, n = 0;
+  // Identical result to running every search in order, but a search that cannot reach score 0 (its label-independent conflicts are non-zero) is postponed:
+  // if a later attempt gets a clean layout the postponed ones were not needed at all (this is what made H114 build ~10x slower than the other articles).
+  const results = [], deferred = []; let n = 0;
   for (const t of tries) {
     n++;
-    const r = attempt(...t);
-    if (!best || r.sc < best.sc) best = r;
-    if (r.sc === 0) break;
+    const a = attempt(...t), i = results.length;
+    if (a.sc0 === 0 || !a.hopeless) { const r = a.finish(); results.push(r); if (r.sc === 0) break; }
+    else { results.push(null); deferred.push([i, a]); }
   }
+  if (!results.some((r) => r && r.sc === 0)) for (const [i, a] of deferred) results[i] = a.finish();
+  let best = null;
+  for (const r of results) if (r && (!best || r.sc < best.sc)) best = r;
   const svg = svgString(best);
   return { svg, W: best.W, H: best.H, toPx: best.toPx, P2: proj.P2, N: proj.N, check: best.check, projection: proj.checks, header: best.header,
     adjust: { attempts: n, layout: best.layoutName, offsetK: best.k, shrink: best.shrink, labelShifts: best.shifts.map(f2) } };
