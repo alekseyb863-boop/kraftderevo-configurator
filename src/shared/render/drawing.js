@@ -1,4 +1,4 @@
-// IKEA-style drawing (browser-safe, no fs): replicad HLR projection + dimensions + top-left text block -> SVG string,
+// Isometric projection drawing (browser-safe, no fs): replicad HLR projection + dimensions + top-left text block -> SVG string,
 // with the geometric text-overlap check and an automatic layout adjustment (label shifts, dimension offsets, other layout, shrink).
 import { projectSolid } from "./projection.js";
 import { buildDim, pt } from "./dimensions.js";
@@ -10,8 +10,8 @@ const ext = (pts) => [Math.min(...pts.map((p) => p[0])), Math.min(...pts.map((p)
 
 // ---- the three layouts of the Python originals ----
 // "forms": forms/kdrender.py (1200x1400, fit to the free region below the header)
-// "leg":   0090/0011 render_ikea.py (1200x1400, fixed margins, drawing at the bottom)
-// "table": H098/render_ikea.py (1600x1000, equal-aspect axes with fixed data margins)
+// "leg":   0090/0011 reference render script (render_*.py) (1200x1400, fixed margins, drawing at the bottom)
+// "table": H098 reference render script (render_*.py) (1600x1000, equal-aspect axes with fixed data margins)
 // opt.shrink (<=1) additionally scales the drawing down about the centre of its free region (used by the auto-adjust).
 export const LAYOUTS = {
   forms(lines, dimPts, nText, opt = {}) {

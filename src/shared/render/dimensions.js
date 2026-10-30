@@ -1,4 +1,4 @@
-// IKEA-style dimension: extension lines, dimension line with filled arrow heads, rotated label on a white box.
+// Isometric projection drawing dimension: extension lines, dimension line with filled arrow heads, rotated label on a white box.
 import { textWidth, textPathD, layoutBox } from "./fonts.js";
 import { sub, add, mul, norm, polyEdges } from "./geom.js";
 import { visibleIntervals } from "./occlude.js";
