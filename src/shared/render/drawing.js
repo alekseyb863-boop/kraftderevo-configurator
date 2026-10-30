@@ -79,7 +79,7 @@ export function buildDrawing({ solid, view, layout, makeDims, textLines, auto = 
     const geom = proj.lines.map((pl) => pl.map(toPx));
     const header = layoutTextBlock(textLines, style);
     const shifts = dims.map((d) => d.shift || 0);
-    const build = () => dims.map((d, i) => buildDim({ ...d, shift: shifts[i] }, { P2: proj.P2, toPx, scale: L.scale, style }));
+    const build = () => dims.map((d, i) => buildDim({ ...d, shift: shifts[i] }, { P2: proj.P2, toPx, scale: L.scale, style, occ: proj.occ }));
     const run = () => { const built = build(); return { built, check: overlapCheck({ geom, dims: built, header, W, H, margin }) }; };
     let cur = run();
     if (search && !cur.check.ok) {

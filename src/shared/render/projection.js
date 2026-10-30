@@ -1,5 +1,6 @@
 // HLR projection (replicad drawProjection + ProjectionCamera), hidden lines removed, with self-validation of the 2D frame.
 import * as R from "replicad";
+import { makeOccluder } from "./occlude.js";
 const nrm = (v) => { const n = Math.hypot(...v); return v.map((x) => x / n); };
 const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
 const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
@@ -41,5 +42,5 @@ export function projectSolid(solid, azDeg, elDeg) {
     .every((v) => ref.filter((p) => Math.abs(p[c] - v) < 1e-6).some(near)));
   const checks = { extentErr: err.map((e) => +e.toFixed(4)), extremeVerticesMatch: extremeOK, lineCount: lines.length };
   if (Math.abs(err[0]) > 0.05 || Math.abs(err[1]) > 0.05 || !extremeOK) throw new Error("replicad projection does not match reference camera: " + JSON.stringify(checks));
-  return { lines, P2, N, checks };
+  return { lines, P2, N, checks, occ: makeOccluder(solid, P2, N) };
 }
