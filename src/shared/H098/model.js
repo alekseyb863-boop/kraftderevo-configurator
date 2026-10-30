@@ -8,7 +8,7 @@ import { dim } from "../render/dimhelpers.js";
 const controls = [range("L", "Длина", 600, 2400, 10, 1200), range("D", "Ширина", 400, 1200, 10, 700), range("H", "Высота", 300, 1100, 10, 710),
   profileCtl("40x40", "profile", "Профиль", SQUARES), colorCtl("RAL 9001 cream")];
 export const spec = {
-  id: "H098", type: "Подстолье", name: "Подстолье Н098", about: "Подстолье для кухонного стола: 4 ножки и верхняя рамка", controls,
+  id: "H098", type: "Подстолье", category: "Подстолья", name: "Подстолье Н098", about: "Подстолье для кухонного стола: 4 ножки и верхняя рамка", controls,
   normalize(raw) { const { p, warnings } = baseNormalize(controls, raw); return { p, warnings }; },
   parts(p) {
     const P = findIn(SQUARES, p.profile).a, { L, D, H } = p, hx = L / 2, hy = D / 2, s = (a, b) => (a <= b ? [a, b] : [b, a]), out = [];

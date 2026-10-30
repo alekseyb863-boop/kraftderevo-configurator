@@ -13,7 +13,7 @@ const geo = (p) => {
   return { T, B, W2, ALPHA, WH, H2, BETA, WH2 };
 };
 export const spec = {
-  id: "0011", type: "Ножка", name: "Ножка 0011", about: "Стальная полоса, согнутая в Z, плюс вторая диагональ", controls,
+  id: "0011", type: "Ножка", category: "Ножки и опоры", name: "Ножка 0011", about: "Стальная полоса, согнутая в Z, плюс вторая диагональ", controls,
   normalize(raw) {
     const { p, warnings } = baseNormalize(controls, raw);
     relax(p, controls, (q) => { const g = geo(q); return q.W > g.W2 + 60 && q.W > g.WH2 + 60 && q.H > 6 * g.B + 100; }, [["W", 10], ["H", 10]], warnings, "иначе диагонали не помещаются");

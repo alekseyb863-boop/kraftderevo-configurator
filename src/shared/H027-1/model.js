@@ -58,7 +58,7 @@ const prof = (p) => findIn(PROFILES, p.profile);
 const dv = (p) => { const pr = prof(p); return derive({ A: p.WT, B: p.WB, C: p.D, H: p.H }, pr.a, pr.b); };
 
 export const spec = {
-  id: "H027-1", type: "Ножка", name: "Ножка Н027-1", about: "Ножка-трапеция Н050, согнутая по оси: в плане верх и низ — «V» с одним углом", controls,
+  id: "H027-1", type: "Ножка", category: "Ножки и опоры", name: "Ножка Н027-1", about: "Ножка-трапеция Н050, согнутая по оси: в плане верх и низ — «V» с одним углом", controls,
   normalize(raw) {
     const { p, warnings } = baseNormalize(controls, raw), pr = prof(p), lab = Object.fromEntries(controls.map((c) => [c.key, c]));
     const ok = (q) => !derive({ A: q.WT, B: q.WB, C: q.D, H: q.H }, pr.a, pr.b).error;

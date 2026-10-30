@@ -15,7 +15,7 @@ const controls = [range("H", "Высота", 500, 2200, 10, 1500), range("W", "�
   profileCtl("25x25", "profile", "Профиль", SQUARES), colorCtl("черный")];
 const prof = (p) => findIn(SQUARES, p.profile);
 export const spec = {
-  id: "V004", type: "Рейл", name: "Рейл В004", about: "Открытая вешалка для прихожей: каркас-параллелепипед со штангой наверху", controls,
+  id: "V004", type: "Рейл", category: "Рейлы", name: "Рейл В004", about: "Открытая вешалка для прихожей: каркас-параллелепипед со штангой наверху", controls,
   normalize(raw) { const { p, warnings } = baseNormalize(controls, raw); return { p, warnings }; },
   parts(p) {
     const a = prof(p).a, { H, W, D } = p, yc0 = (D - a) / 2, yc1 = (D + a) / 2, out = [];

@@ -34,7 +34,7 @@ const controls = [range("L", "Длина", 600, 3000, 10, 1600), range("W", "Ш�
   range("S", "Отступ от края", 0, 460, 5, 100), profileCtl("60x30", "profile", "Профиль", PROFILES_BASE), colorCtl("черный")];
 
 export const spec = {
-  id: "H114", type: "Подстолье", name: "Подстолье Н114", about: "Подстолье целиком: 2 ножки Н031, нижняя балка по центру и 2 верхние балки", controls,
+  id: "H114", type: "Подстолье", category: "Подстолья", name: "Подстолье Н114", about: "Подстолье целиком: 2 ножки Н031, нижняя балка по центру и 2 верхние балки", controls,
   normalize(raw) {
     const { p, warnings } = baseNormalize(controls, raw), a = prof(p).a, max = maxOffset(p.W, a);
     if (p.S > max) {

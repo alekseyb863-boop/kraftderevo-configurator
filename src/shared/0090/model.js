@@ -8,7 +8,7 @@ const controls = [range("W", "Ширина", 400, 1400, 10, 800), range("H", "В
 // наклон оси прута от вертикали: горизонтальная ширина сечения wh = B/cos(a), dx = W - wh на dz = H
 const geo = (p) => { const { a: T, b: B } = findIn(PROFILES, p.profile), alpha = bisect((a) => Math.tan(a) * p.H + B / Math.cos(a) - p.W, 0, 1.55); return { T, B, alpha, WH: B / Math.cos(alpha) }; };
 export const spec = {
-  id: "0090", type: "Ножка", name: "Ножка 0090", about: "X-образная стальная ножка из профиля", controls,
+  id: "0090", type: "Ножка", category: "Ножки и опоры", name: "Ножка 0090", about: "X-образная стальная ножка из профиля", controls,
   normalize(raw) {
     const { p, warnings } = baseNormalize(controls, raw);
     relax(p, controls, (q) => { const g = geo(q); return q.W > g.B + 50 && q.W - 2 * g.WH >= 40; }, [["W", 10], ["H", -10]], warnings, "иначе прутья сливаются");

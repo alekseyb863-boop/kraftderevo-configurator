@@ -12,7 +12,7 @@ const geo = (p) => {
 };
 const outer = (p) => { const g = geo(p); return [[g.d, 0], [g.d + p.WB, 0], [p.WT, g.HL], [0, g.HL]]; };
 export const spec = {
-  id: "H043", type: "Ножка", name: "Ножка Н043", about: "Ножки для стола: U-образные, с верхними пластинами", controls,
+  id: "H043", type: "Ножка", category: "Ножки и опоры", name: "Ножка Н043", about: "Ножки для стола: U-образные, с верхними пластинами", controls,
   normalize(raw) {
     const { p, warnings } = baseNormalize(controls, raw), pr = findIn(PROFILES, p.profile), need = Math.ceil((pr.a + 10) / 5) * 5;
     if (p.PS < need) { warnings.push(`«Пластина, сторона»: ${p.PS} → ${need} мм (пластина должна перекрывать профиль ${pr.label}).`); p.PS = need; }

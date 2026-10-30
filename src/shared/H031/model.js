@@ -7,7 +7,7 @@ import { dimAB } from "../render/dimhelpers.js";
 export const legFrame = (W, H, pr) => frame([[0, 0], [W, 0], [W, H], [0, H]], [pr.b, pr.b, pr.b, pr.b], 0, pr.a);
 const controls = [range("W", "Ширина", 150, 1000, 10, 450), range("H", "Высота", 300, 1500, 10, 1050), profileCtl("40x20"), colorCtl("черный")];
 export const spec = {
-  id: "H031", type: "Опора", name: "Опора Н031", about: "Опора для барной стойки, прямоугольная рама", controls,
+  id: "H031", type: "Опора", category: "Ножки и опоры", name: "Опора Н031", about: "Опора для барной стойки, прямоугольная рама", controls,
   normalize(raw) { const { p, warnings } = baseNormalize(controls, raw); return { p, warnings }; },
   parts(p) {
     const pr = findIn(PROFILES, p.profile), { W, H } = p;

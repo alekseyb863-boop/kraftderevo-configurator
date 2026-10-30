@@ -7,7 +7,7 @@ const controls = [range("WT", "Ширина верха", 250, 1200, 10, 500), ra
   profileCtl("50x25"), colorCtl("черный")];
 const outer = (p) => { const d = (p.WT - p.WB) / 2; return [[d, 0], [d + p.WB, 0], [p.WT, p.H], [0, p.H]]; };
 export const spec = {
-  id: "H050", type: "Ножка", name: "Ножка Н050", about: "Ножка для барной стойки: замкнутая трапеция (низ уже верха)", controls,
+  id: "H050", type: "Ножка", category: "Ножки и опоры", name: "Ножка Н050", about: "Ножка для барной стойки: замкнутая трапеция (низ уже верха)", controls,
   normalize(raw) {
     const { p, warnings } = baseNormalize(controls, raw), pr = findIn(PROFILES, p.profile);
     if (p.WB > p.WT) { warnings.push(`«Ширина низа» не может быть больше ширины верха: ${p.WB} → ${p.WT} мм.`); p.WB = p.WT; }

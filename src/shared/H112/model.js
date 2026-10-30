@@ -9,7 +9,7 @@ const controls = [range("WB", "Ширина низа", 300, 1200, 10, 600), rang
 const geo = (p) => { const pr = findIn(PROFILES, p.profile), st = findIn(STRIPS, p.strip); return { TIN: pr.b, DEP: pr.a, PL_D: st.a, PL_T: st.b, PL_L: p.WB, d: (p.WB - p.WT) / 2, HL: p.H - st.b }; };
 const outer = (p) => { const g = geo(p); return [[0, 0], [p.WB, 0], [p.WB - g.d, g.HL], [g.d, g.HL]]; };
 export const spec = {
-  id: "H112", type: "Опора", name: "Опора Н112", about: "Опора-трапеция с верхней полосой-пластиной", controls,
+  id: "H112", type: "Опора", category: "Ножки и опоры", name: "Опора Н112", about: "Опора-трапеция с верхней полосой-пластиной", controls,
   normalize(raw) {
     const { p, warnings } = baseNormalize(controls, raw);
     let g = geo(p);

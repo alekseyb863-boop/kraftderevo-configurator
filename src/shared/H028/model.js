@@ -7,7 +7,7 @@ import { dimAB } from "../render/dimhelpers.js";
 const controls = [range("W", "Ширина", 250, 1000, 10, 600), range("H", "Высота", 300, 1100, 10, 710), range("D", "Глубина", 100, 700, 10, 230),
   profileCtl("40x20"), colorCtl("лофт")];
 export const spec = {
-  id: "H028", type: "Ножка", name: "Ножка Н028", about: "Ножки для стола: рама с боковой рамой глубиной D", controls,
+  id: "H028", type: "Ножка", category: "Ножки и опоры", name: "Ножка Н028", about: "Ножки для стола: рама с боковой рамой глубиной D", controls,
   normalize(raw) {
     const { p, warnings } = baseNormalize(controls, raw);
     relax(p, controls, (q) => { const r = findIn(PROFILES, q.profile); return frameFeasible([[0, 0], [q.W, 0], [q.W, q.H], [0, q.H]], [r.b, r.b, r.b, r.b], 20) && q.D >= r.a + r.b + 30 && q.H >= 2 * r.b + 40; },
