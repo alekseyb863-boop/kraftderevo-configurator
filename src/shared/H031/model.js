@@ -3,13 +3,15 @@ import { frame } from "../lib/model.js";
 import { PROFILES, range, profileCtl, colorCtl, findIn, baseNormalize } from "../lib/params.js";
 import { dimAB } from "../render/dimhelpers.js";
 
+/** the leg itself (also used by Н114): rectangular frame W×H of a profile pr (pr.b in the plane, pr.a deep), plane XZ, depth +Y */
+export const legFrame = (W, H, pr) => frame([[0, 0], [W, 0], [W, H], [0, H]], [pr.b, pr.b, pr.b, pr.b], 0, pr.a);
 const controls = [range("W", "Ширина", 150, 1000, 10, 450), range("H", "Высота", 300, 1500, 10, 1050), profileCtl("40x20"), colorCtl("черный")];
 export const spec = {
   id: "H031", type: "Опора", name: "Опора Н031", about: "Опора для барной стойки, прямоугольная рама", controls,
   normalize(raw) { const { p, warnings } = baseNormalize(controls, raw); return { p, warnings }; },
   parts(p) {
     const pr = findIn(PROFILES, p.profile), { W, H } = p;
-    return [frame([[0, 0], [W, 0], [W, H], [0, H]], [pr.b, pr.b, pr.b, pr.b], 0, pr.a)];
+    return [legFrame(W, H, pr)];
   },
   expectBBox: (p) => [p.W, findIn(PROFILES, p.profile).a, p.H],
   view: { az: 50, el: 16 }, layout: "forms",

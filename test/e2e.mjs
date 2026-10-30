@@ -1,5 +1,5 @@
 // E2E (Playwright, headless Chromium) по собранной странице (`npm run build` -> vite preview):
-//  для каждого из 12 артикулов: выбрать плитку, проверить SVG/заголовок/строки, подвигать ползунок, сменить профиль/полосу и цвет,
+//  для каждого из 13 артикулов: выбрать плитку, проверить SVG/заголовок/строки, подвигать ползунок, сменить профиль/полосу и цвет,
 //  проверить проверку пересечений (из воркера + независимая проверка в странице), сохранить скриншот screens/<артикул>.png;
 //  плюс: валидация недопустимых значений, скачивание PNG/PDF/STL, ошибки консоли.
 //  Запуск: npm run build && npm test     (CHROME_PATH=/usr/bin/google-chrome — системный Chrome)
@@ -27,8 +27,8 @@ try {
   await page.waitForSelector("#view svg", { timeout: 90000 });
   console.log("первая отрисовка через", Date.now() - t0, "мс");
   const tiles = await page.$$eval("#tiles .tile", (t) => t.map((x) => x.dataset.article));
-  const EXPECT = ["H031", "H005", "H050", "H027-1", "H112", "H028", "H030-2", "H043", "H038", "H098", "0090", "0011"];
-  ok(JSON.stringify(tiles) === JSON.stringify(EXPECT), "плитки: все 12 артикулов в нужном порядке: " + tiles.join(" "));
+  const EXPECT = ["H031", "H114", "H005", "H050", "H027-1", "H112", "H028", "H030-2", "H043", "H038", "H098", "0090", "0011"];
+  ok(JSON.stringify(tiles) === JSON.stringify(EXPECT), "плитки: все 13 артикулов в нужном порядке: " + tiles.join(" "));
 
   const lastP = () => page.evaluate(() => JSON.parse(JSON.stringify({ ...window.__configurator.last, svg: undefined })));
   const waitLast = (pred, arg, timeout = 60000) => page.waitForFunction(`(() => { const l = window.__configurator.last; return !!l && (${pred})(l, ${JSON.stringify(arg)}); })()`, null, { timeout });

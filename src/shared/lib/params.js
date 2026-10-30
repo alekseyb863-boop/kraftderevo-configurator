@@ -4,6 +4,9 @@ import { innerPolygon } from "./model.js";
 /** rectangular tube sections a×b: a = size in depth (Y), b = size in the plane of the frame (the "thickness" of the member) */
 export const PROFILES = [["40x20", 40, 20], ["50x25", 50, 25], ["40x40", 40, 40], ["60x30", 60, 30], ["80x40", 80, 40]]
   .map(([id, a, b]) => ({ id, a, b, label: `${a}×${b}` }));
+/** sections offered on the site for the full table base Н114 (30х30 … 80х80): a = depth (along the table length), b = size in the plane of the leg frame */
+export const PROFILES_BASE = [["30x30", 30, 30], ["40x20", 40, 20], ["40x40", 40, 40], ["50x25", 50, 25], ["50x50", 50, 50], ["60x30", 60, 30], ["60x60", 60, 60], ["80x40", 80, 40], ["80x80", 80, 80]]
+  .map(([id, a, b]) => ({ id, a, b, label: `${a}×${b}` }));
 /** steel strips w×t: w = width (depth), t = thickness */
 export const STRIPS = [["60x6", 60, 6], ["80x6", 80, 6], ["80x8", 80, 8]].map(([id, a, b]) => ({ id, a, b, label: `${a}×${b}` }));
 /** square sections for the table base */
