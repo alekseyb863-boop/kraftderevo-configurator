@@ -1,6 +1,7 @@
 // UI конфигуратора: выбор артикула (плитки) -> ползунки/поля из описания параметров -> (debounce) -> воркер -> SVG на странице.
 // Скачивание: SVG, PDF, STL, STEP.  Здесь нет ни replicad, ни OpenCascade: всё тяжёлое делает воркер.
 import { svgToPdfBlob } from "./pdf.js";
+import { svgToPngBlob } from "./png.js";
 
 const $ = (id) => document.getElementById(id);
 const BASE = import.meta.env.BASE_URL;
@@ -129,18 +130,16 @@ function show(r, force) {
     `Тело: <b data-check="solid">${s.ok ? "OK" : "ПРОБЛЕМА"}</b> — цельное (${s.solids}), валидное, герметичное; габариты ${r.bbox.map((v) => +v.toFixed(1)).join("×")} мм ${s.bboxOK ? "= заданным" : "≠ заданным"}.`].join("<br>");
   setStatus(`готово · ${r.ms} мс`); setButtons(true);
 }
-const setButtons = (on) => { for (const id of ["dl-svg", "dl-pdf", "dl-stl", "dl-step"]) $(id).disabled = !on; };
+const setButtons = (on) => { for (const id of ["dl-png", "dl-pdf", "dl-stl"]) $(id).disabled = !on; };
 
 // ---------- скачивание ----------
 function save(blob, name) { const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: name }); document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000); }
-$("dl-svg").onclick = () => last && save(new Blob([last.svg], { type: "image/svg+xml" }), last.name + ".svg");
+$("dl-png").onclick = async () => { if (!last) return; setStatus("PNG…", "busy"); try { save(await svgToPngBlob(last.svg, last.W, last.H), last.name + ".png"); setStatus("PNG готов"); } catch (e) { setStatus("PNG: " + e.message, "err"); console.error(e); } };
 $("dl-pdf").onclick = async () => { if (!last) return; setStatus("PDF…", "busy"); try { save(await svgToPdfBlob(last.svg, last.W, last.H), last.name + ".pdf"); setStatus("PDF готов"); } catch (e) { setStatus("PDF: " + e.message, "err"); console.error(e); } };
-for (const [id, fmt, mime] of [["dl-stl", "stl", "model/stl"], ["dl-step", "step", "model/step"]]) {
-  $(id).onclick = async () => {
-    if (!last) return; setStatus(fmt.toUpperCase() + "…", "busy");
-    try { const r = await call({ type: "export", format: fmt, article: last.article, params: last.params }); save(new Blob([r.buffer], { type: mime }), r.name); setStatus(fmt.toUpperCase() + " готов"); }
-    catch (e) { setStatus(fmt.toUpperCase() + ": " + e.message, "err"); }
-  };
-}
+$("dl-stl").onclick = async () => {
+  if (!last) return; setStatus("STL…", "busy");
+  try { const r = await call({ type: "export", format: "stl", article: last.article, params: last.params }); save(new Blob([r.buffer], { type: "model/stl" }), r.name); setStatus("STL готов"); }
+  catch (e) { setStatus("STL: " + e.message, "err"); }
+};
 setButtons(false);
 window.__configurator = { get last() { return last; }, get values() { return values; } };   // для автотестов

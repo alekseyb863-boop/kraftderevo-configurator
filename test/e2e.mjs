@@ -1,7 +1,7 @@
 // E2E (Playwright, headless Chromium) по собранной странице (`npm run build` -> vite preview):
 //  для каждого из 12 артикулов: выбрать плитку, проверить SVG/заголовок/строки, подвигать ползунок, сменить профиль/полосу и цвет,
 //  проверить проверку пересечений (из воркера + независимая проверка в странице), сохранить скриншот screens/<артикул>.png;
-//  плюс: валидация недопустимых значений, скачивание SVG/PDF/STL/STEP, ошибки консоли.
+//  плюс: валидация недопустимых значений, скачивание PNG/PDF/STL, ошибки консоли.
 //  Запуск: npm run build && npm test     (CHROME_PATH=/usr/bin/google-chrome — системный Chrome)
 import { spawn } from "node:child_process";
 import fs from "node:fs";
@@ -135,15 +135,14 @@ try {
 
   // ---------- скачивание ----------
   const dl = async (sel) => { const [d] = await Promise.all([page.waitForEvent("download", { timeout: 60000 }), page.click(sel)]); const p = `/tmp/dl_${d.suggestedFilename()}`; await d.saveAs(p); return p; };
-  const svgP = await dl("#dl-svg"), svgT = fs.readFileSync(svgP, "utf8");
-  ok(svgT.startsWith("<?xml") && svgT.includes("<polyline") && !svgT.includes("<text"), `SVG скачан: ${svgP} (${svgT.length} байт)`);
+  ok((await page.$("#dl-svg")) === null && (await page.$("#dl-step")) === null && (await page.$("#dl-png")) !== null, "кнопки: SVG и STEP убраны, PNG есть");
+  const pngP = await dl("#dl-png"), png = fs.readFileSync(pngP), pw = png.readUInt32BE(16), ph = png.readUInt32BE(20), lastW = await page.evaluate(() => window.__configurator.last.W);
+  ok(png.subarray(1, 4).toString() === "PNG" && pw === Math.round(lastW * 2.5) && png.length > 20000, `PNG скачан: ${pngP} (${pw}×${ph}, ${png.length} байт)`);
   const pdfP = await dl("#dl-pdf"), pdf = fs.readFileSync(pdfP);
   ok(pdf.subarray(0, 4).toString() === "%PDF" && pdf.length > 5000, `PDF скачан: ${pdfP} (${pdf.length} байт)`);
   const stlP = await dl("#dl-stl"), stl = fs.readFileSync(stlP), ntri = stl.readUInt32LE(80);
   ok(stl.length === 84 + 50 * ntri && ntri > 20, `STL скачан: ${stlP} (бинарный, ${ntri} треугольников)`);
-  const stepP = await dl("#dl-step"), step = fs.readFileSync(stepP, "utf8");
-  ok(step.includes("ISO-10303-21") && step.includes("MANIFOLD_SOLID_BREP"), `STEP скачан: ${stepP}`);
-  fs.copyFileSync(svgP, path.join(SCREENS, "sample_download.svg"));
+  fs.copyFileSync(pngP, path.join(SCREENS, "sample_download.png"));
 
   ok(errors.length === 0, "нет ошибок в консоли" + (errors.length ? ": " + errors.slice(0, 3).join(" | ") : ""));
 } finally { await browser.close(); srv.kill(); }

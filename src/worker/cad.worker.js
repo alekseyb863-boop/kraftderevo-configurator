@@ -1,8 +1,8 @@
 // Web Worker: OpenCascade (WASM) + replicad + отрисовка чертежа. UI-поток остаётся свободным.
 // main -> {type:"init", base}                       => worker -> {type:"meta", articles} (сразу) и {type:"ready"} (после загрузки WASM)
 // main -> {id, type:"draw", article, params}        => {id, type:"drawn", svg, W, H, check, warnings, params, bbox, solid, adjust, ms}
-// main -> {id, type:"export", format, article, params} => {id, type:"file", buffer, name}   (format: "stl" | "step")
-import { setOC, exportSTEP } from "replicad";
+// main -> {id, type:"export", format, article, params} => {id, type:"file", buffer, name}   (format: "stl")
+import { setOC } from "replicad";
 import opencascade from "replicad-opencascadejs";
 import wasmUrl from "replicad-opencascadejs/wasm?url";
 import { BY_ID, meta } from "../shared/registry.js";
@@ -83,7 +83,7 @@ self.onmessage = async ({ data }) => {
     } else if (type === "export") {
       const { S, p, solid } = build(data.article, data.params);
       try {
-        const blob = data.format === "stl" ? solid.blobSTL({ tolerance: 0.05, angularTolerance: 0.1, binary: true }) : exportSTEP([{ shape: solid, name: S.id }]);
+        const blob = solid.blobSTL({ tolerance: 0.05, angularTolerance: 0.1, binary: true });
         const buffer = await blob.arrayBuffer();
         self.postMessage({ id, type: "file", buffer, name: `${sizeName(S, p)}.${data.format}` }, [buffer]);
       } finally { free(solid); }
