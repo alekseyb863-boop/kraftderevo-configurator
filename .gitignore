@@ -1,0 +1,9 @@
+node_modules/
+dist/
+test-results/
+playwright-report/
+*.log
+.DS_Store
+# скриншоты тестов (перегенерируются командой npm test)
+screens/
+!screens/overview.png

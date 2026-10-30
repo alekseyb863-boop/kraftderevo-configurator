@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Конфигуратор артикулов</title>
+  <link rel="icon" href="data:," />
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <header><h1>Конфигуратор артикулов</h1><span id="status" class="status">загрузка CAD-ядра…</span></header>
+  <main>
+    <form id="form" autocomplete="off" onsubmit="return false">
+      <h2>Артикул</h2>
+      <div id="tiles" class="tiles" role="radiogroup" aria-label="Артикул"></div>
+      <p id="about" class="about"></p>
+      <h2>Параметры</h2>
+      <div id="controls"></div>
+      <div class="buttons">
+        <button type="button" id="dl-svg">Скачать SVG</button>
+        <button type="button" id="dl-pdf">Скачать PDF</button>
+        <button type="button" id="dl-stl">Скачать STL</button>
+        <button type="button" id="dl-step">Скачать STEP</button>
+        <button type="button" id="reset" class="secondary">Сбросить</button>
+      </div>
+      <ul id="warnings" class="warnings" aria-live="polite"></ul>
+      <p id="info" class="info"></p>
+    </form>
+    <section id="view" aria-label="Чертёж"></section>
+  </main>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
