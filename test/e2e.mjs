@@ -65,8 +65,12 @@ try {
     ok(/^(Опора|Ножка|Подстолье) /.test(title) && (id === "H098" || id.startsWith("00") || title.includes("\u041D")) && title.endsWith(id.replace(/^H/, "")) , `${id}: заголовок «${title}» (кириллическая Н: ${id.startsWith("H") ? title.includes("\u041D") : "n/a"})`);
     ok(/^(Профиль|Полоса) \d+×\d+ мм/.test(line2) && !tx.some((t) => /сплошн/i.test(t)), `${id}: вторая строка «${line2}», слова «сплошной» нет`);
     ok(tx.some((t) => /^Цвет: .+/.test(t)), `${id}: есть строка «Цвет: …»`);
-    const ov = async (tag) => { const o = await page.textContent('[data-check="overlap"]'), s = await page.textContent('[data-check="solid"]'), d = await domOverlap(); ok(o === "OK" && s === "OK" && d.bad.length === 0 && d.labelHits === 0, `${id}${tag}: проверка пересечений OK (воркер: ${o}; в странице: ${d.rects} строк × ${d.segs} отрезков, пересечений ${d.bad.length}, подписи×геометрия ${d.labelHits}); тело: ${s}`); };
+    const ov = async (tag) => { const o = await page.getAttribute("#checks", "data-overlap"), s = await page.getAttribute("#checks", "data-solid"), d = await domOverlap(); ok(o === "OK" && s === "OK" && d.bad.length === 0 && d.labelHits === 0, `${id}${tag}: проверка пересечений OK (воркер: ${o}; в странице: ${d.rects} строк × ${d.segs} отрезков, пересечений ${d.bad.length}, подписи×геометрия ${d.labelHits}); тело: ${s}`); };
     await ov("");
+    if (id === "H031") {                                  // отчёт о проверках в интерфейсе не показывается, но результаты доступны (window.__checks, #checks[data-*])
+      const body = await page.evaluate(() => document.body.innerText), chk = await page.evaluate(() => window.__checks);
+      ok(!/Проверка пересечений|Расположение подобрано|Тело: |герметичн|отрезков, поля/.test(body) && (await page.isHidden("#info")) && chk.overlap === "OK" && chk.solid === "OK" && chk.segments > 0, "отчёт о проверках не виден в интерфейсе; window.__checks = " + JSON.stringify(chk));
+    }
     // --- ползунок
     const ctl = meta.params, ctls = await page.$$eval("#controls .row", (rows) => rows.map((r) => ({ key: r.dataset.key, kind: r.querySelector("input[type=range]") ? "range" : r.querySelector("select") ? "select" : "text", min: +(r.querySelector("input[type=range]")?.min), max: +(r.querySelector("input[type=range]")?.max), step: +(r.querySelector("input[type=range]")?.step), n: r.querySelectorAll("input[type=range]").length })));
     const first = ctls.find((c) => c.kind === "range"), cur = ctl[first.key];
@@ -109,7 +113,7 @@ try {
   await page.click('#tiles .tile[data-article="H005"]'); await waitLast((l, a) => l.article === a, "H005");
   await page.fill('#controls [data-key="WT"] input[type=number]', "1200"); await page.dispatchEvent('#controls [data-key="WT"] input[type=number]', "change");
   await waitLast((l) => l.params.WT <= l.params.WB && l.warnings.length > 0);
-  ok((await page.$$eval("#warnings li", (l) => l.map((x) => x.textContent))).length > 0 && (await page.textContent('[data-check="solid"]')) === "OK", "H005: ширина верха 1200 > ширины низа — сообщение вместо падения: " + (await page.$$eval("#warnings li", (l) => l.map((x) => x.textContent))).join(" | "));
+  ok((await page.$$eval("#warnings li", (l) => l.map((x) => x.textContent))).length > 0 && (await page.getAttribute("#checks", "data-solid")) === "OK", "H005: ширина верха 1200 > ширины низа — сообщение вместо падения: " + (await page.$$eval("#warnings li", (l) => l.map((x) => x.textContent))).join(" | "));
   await page.fill('#controls [data-key="H"] input[type=number]', "99999"); await page.dispatchEvent('#controls [data-key="H"] input[type=number]', "change");
   await waitLast((l) => l.params.H === 1100);
   ok((await page.inputValue('#controls [data-key="H"] input[type=number]')) === "1100", "H005: высота 99999 ограничена максимумом 1100 (поле обновлено)");
@@ -117,7 +121,7 @@ try {
   await page.selectOption('#controls [data-key="profile"] select', "80x40");
   await page.fill('#controls [data-key="WB"] input[type=number]', "100"); await page.dispatchEvent('#controls [data-key="WB"] input[type=number]', "change");
   await waitLast((l) => l.params.profile === "80x40" && l.params.WB >= 100);
-  ok((await page.textContent('[data-check="solid"]')) === "OK" && (await page.textContent('[data-check="overlap"]')) === "OK", "H050: нижняя ширина 100 при профиле 80×40 — согласовано: WB=" + (await lastP()).params.WB + "; " + (await page.$$eval("#warnings li", (l) => l.map((x) => x.textContent))).join(" | "));
+  ok((await page.getAttribute("#checks", "data-solid")) === "OK" && (await page.getAttribute("#checks", "data-overlap")) === "OK", "H050: нижняя ширина 100 при профиле 80×40 — согласовано: WB=" + (await lastP()).params.WB + "; " + (await page.$$eval("#warnings li", (l) => l.map((x) => x.textContent))).join(" | "));
   await page.click('#tiles .tile[data-article="H112"]'); await waitLast((l, a) => l.article === a, "H112");
   await page.selectOption('#controls [data-key="profile"] select', "80x40"); await page.selectOption('#controls [data-key="strip"] select', "60x6");
   await waitLast((l) => l.params.profile === "80x40");

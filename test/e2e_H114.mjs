@@ -22,8 +22,10 @@ for (const [name, opts] of [["desktop", { viewport: { width: 1500, height: 950 }
   ok(JSON.stringify(labels) === JSON.stringify(["Длина", "Ширина", "Высота", "Отступ от края", "Профиль", "Цвет"]), "подписи: " + labels.join(", "));
   let L = await last();
   ok(L.params.L === 1600 && L.params.W === 710 && L.params.H === 710 && L.params.S === 100 && L.params.profile === "60x30" && L.bbox.join() === "1600,710,710", "умолчания 1600×710×710, отступ 100, профиль 60×30: " + JSON.stringify(L.params));
-  const solidOK = async (m) => { const l = await last(); ok(l.solid.ok && l.solid.solids === 1 && l.solid.bboxOK && (await page.textContent('[data-check="overlap"]')) === "OK", `${m}: одно тело, габариты ${l.bbox.join("×")}, пересечений текста нет`); return l; };
+  const solidOK = async (m) => { const l = await last(); ok(l.solid.ok && l.solid.solids === 1 && l.solid.bboxOK && (await page.getAttribute("#checks", "data-overlap")) === "OK", `${m}: одно тело, габариты ${l.bbox.join("×")}, пересечений текста нет`); return l; };
   await solidOK("умолчания");
+  { const body = await page.evaluate(() => document.body.innerText), chk = await page.evaluate(() => window.__checks);
+    ok(!/Проверка пересечений|Расположение подобрано|Тело: |герметичн|отрезков, поля/.test(body) && (await page.isHidden("#info")) && chk.overlap === "OK" && chk.solid === "OK", "отчёт о проверках не виден; window.__checks: " + JSON.stringify(chk)); }
   ok((await texts()).includes("Отступ от края: 100 мм") && (await texts()).includes("Длина: 1600 мм"), "блок текста: «Длина: 1600 мм», «Отступ от края: 100 мм»");
   // Длина
   await set("L", 2000); await wait((l) => l.params.L === 2000 && l.solid.ok);

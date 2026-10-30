@@ -125,9 +125,14 @@ function show(r, force) {
   syncControls(r.params, force);
   $("warnings").innerHTML = r.warnings.map((w) => `<li>${w}</li>`).join("");
   const c = r.check, s = r.solid, a = r.adjust;
-  $("info").innerHTML = [
-    `Проверка пересечений текста: <b data-check="overlap">${c.ok ? "OK" : "ЕСТЬ ПЕРЕСЕЧЕНИЯ"}</b> (${c.segments} отрезков, поля ${c.margin} px).` + (a.attempts > 1 ? ` Расположение подобрано автоматически (вариантов: ${a.attempts}).` : ""),
-    `Тело: <b data-check="solid">${s.ok ? "OK" : "ПРОБЛЕМА"}</b> — цельное (${s.solids}), валидное, герметичное; габариты ${r.bbox.map((v) => +v.toFixed(1)).join("×")} мм ${s.bboxOK ? "= заданным" : "≠ заданным"}.`].join("<br>");
+  // Отчёт о проверках в интерфейсе не показываем: результаты доступны тестам (window.__checks, data-атрибуты на #checks) и в console.debug.
+  const checks = { overlap: c.ok ? "OK" : "FAIL", solid: s.ok ? "OK" : "FAIL", article: r.article, segments: c.segments, margin: c.margin, attempts: a.attempts, layout: a.layout,
+    solids: s.solids, bbox: r.bbox, bboxOK: s.bboxOK };
+  window.__checks = checks; Object.assign($("checks").dataset, { overlap: checks.overlap, solid: checks.solid, attempts: String(a.attempts), solids: String(s.solids), bboxOk: String(!!s.bboxOK) });
+  console.debug("[проверки]", checks);
+  if (!c.ok) console.warn("[проверки] есть пересечения текста с линиями чертежа", c);        // для пользователя — ничего (чертёж всё равно подобран лучшим из вариантов)
+  $("info").textContent = s.ok ? "" : "Не удалось построить корректное тело для этих параметров — измените размеры или профиль.";   // реальная ошибка геометрии остаётся видимой
+  $("info").hidden = s.ok;
   setStatus(`готово · ${r.ms} мс`); setButtons(true);
 }
 const setButtons = (on) => { for (const id of ["dl-png", "dl-pdf", "dl-stl"]) $(id).disabled = !on; };

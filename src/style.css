@@ -27,7 +27,7 @@ button.tile { padding: 6px 9px; background: #fafafa; color: #222; border: 1px so
 button.tile[aria-checked=true] { background: #1d6fd1; color: #fff; border-color: #1d6fd1; }
 .warnings { list-style: none; margin: 10px 0 0; padding: 0; color: #a05a00; font-size: 12.5px; }
 .warnings li { background: #fff4e0; border: 1px solid #f0d199; border-radius: 5px; padding: 4px 8px; margin: 4px 0; }
-.info { color: #666; font-size: 12px; min-height: 3em; margin: 8px 0 0; }
+.info { color: #666; font-size: 12px; margin: 8px 0 0; } .info.err { color: #c00; } [hidden] { display: none !important; }
 #view { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 8px; position: sticky; top: 8px; height: calc(100vh - 80px); min-height: 420px; display: flex; justify-content: center; }
 #view svg { height: 100%; width: auto; max-width: 100%; }
 @media (max-width: 900px) { header { flex-wrap: wrap; gap: 4px 12px; padding: 8px 12px; } .status { flex-basis: 100%; font-size: 13px; overflow-wrap: anywhere; } main { padding: 8px; } main { grid-template-columns: 1fr; } #view { position: static; height: 80vh; } }

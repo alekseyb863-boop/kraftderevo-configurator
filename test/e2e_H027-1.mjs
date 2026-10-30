@@ -22,7 +22,7 @@ for (const [name, ctxOpts] of [["desktop", { viewport: { width: 1500, height: 95
   for (const [key, v, expectText] of [["WT", 700, "700 мм"], ["WB", 420, "420 мм"], ["D", 300, "300 мм"], ["H", 800, "800 мм"]]) {
     await set(key, v); await wait((l, a) => l.params[a[0]] === a[1] && l.solid.ok, [key, v]);
     const tx = await texts(), L = await last();
-    ok(tx.includes(expectText) || tx.some((t) => t.endsWith(": " + expectText)), `${key}=${v}: размер на чертеже; bbox ${L.bbox.join("×")}; solids=${L.solid.solids}; overlap=${await page.textContent('[data-check="overlap"]')}`);
+    ok(tx.includes(expectText) || tx.some((t) => t.endsWith(": " + expectText)), `${key}=${v}: размер на чертеже; bbox ${L.bbox.join("×")}; solids=${L.solid.solids}; overlap=${await page.getAttribute("#checks", "data-overlap")}`);
   }
   // невозможные значения -> русские предупреждения
   await set("D", 30); await wait((l) => l.params.D === 60 && l.warnings.length > 0);
