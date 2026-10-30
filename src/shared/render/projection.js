@@ -41,5 +41,5 @@ export function projectSolid(solid, azDeg, elDeg) {
     .every((v) => ref.filter((p) => Math.abs(p[c] - v) < 1e-6).some(near)));
   const checks = { extentErr: err.map((e) => +e.toFixed(4)), extremeVerticesMatch: extremeOK, lineCount: lines.length };
   if (Math.abs(err[0]) > 0.05 || Math.abs(err[1]) > 0.05 || !extremeOK) throw new Error("replicad projection does not match reference camera: " + JSON.stringify(checks));
-  return { lines, P2, checks };
+  return { lines, P2, N, checks };
 }

@@ -102,7 +102,7 @@ export function buildDrawing({ solid, view, layout, makeDims, textLines, auto = 
         if (!improved) break;
       }
     }
-    return { ...cur, geom, header, W, H, style, layoutName, k, shrink, shifts, sc: score(cur.check) };
+    return { ...cur, geom, header, W, H, style, toPx, layoutName, k, shrink, shifts, sc: score(cur.check) };
   };
   const tries = auto
     ? [[layout, 1, 1, false], [layout, 1, 1, true], [layout, 1.5, 1, true], [layout, 2, 1, true],
@@ -116,6 +116,6 @@ export function buildDrawing({ solid, view, layout, makeDims, textLines, auto = 
     if (r.sc === 0) break;
   }
   const svg = svgString(best);
-  return { svg, W: best.W, H: best.H, check: best.check, projection: proj.checks, header: best.header,
+  return { svg, W: best.W, H: best.H, toPx: best.toPx, P2: proj.P2, N: proj.N, check: best.check, projection: proj.checks, header: best.header,
     adjust: { attempts: n, layout: best.layoutName, offsetK: best.k, shrink: best.shrink, labelShifts: best.shifts.map(f2) } };
 }
