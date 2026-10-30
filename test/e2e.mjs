@@ -137,7 +137,7 @@ try {
   const dl = async (sel) => { const [d] = await Promise.all([page.waitForEvent("download", { timeout: 60000 }), page.click(sel)]); const p = `/tmp/dl_${d.suggestedFilename()}`; await d.saveAs(p); return p; };
   ok((await page.$("#dl-svg")) === null && (await page.$("#dl-step")) === null && (await page.$("#dl-png")) !== null, "кнопки: SVG и STEP убраны, PNG есть");
   const pngP = await dl("#dl-png"), png = fs.readFileSync(pngP), pw = png.readUInt32BE(16), ph = png.readUInt32BE(20), lastW = await page.evaluate(() => window.__configurator.last.W);
-  ok(png.subarray(1, 4).toString() === "PNG" && pw === Math.round(lastW * 2.5) && png.length > 20000, `PNG скачан: ${pngP} (${pw}×${ph}, ${png.length} байт)`);
+  ok(png.subarray(1, 4).toString() === "PNG" && ph === 1280 && pw === Math.round(lastW * 1280 / (await page.evaluate(() => window.__configurator.last.H))) && png.length > 20000, `PNG скачан: ${pngP} (${pw}×${ph}, ${png.length} байт)`);
   const pdfP = await dl("#dl-pdf"), pdf = fs.readFileSync(pdfP);
   ok(pdf.subarray(0, 4).toString() === "%PDF" && pdf.length > 5000, `PDF скачан: ${pdfP} (${pdf.length} байт)`);
   const stlP = await dl("#dl-stl"), stl = fs.readFileSync(stlP), ntri = stl.readUInt32LE(80);
