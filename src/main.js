@@ -4,21 +4,55 @@ import { svgToPdfBlob } from "./pdf.js";
 
 const $ = (id) => document.getElementById(id);
 const BASE = import.meta.env.BASE_URL;
-const worker = new Worker(new URL("./worker/cad.worker.js", import.meta.url), { type: "module" });
 let articles = [], byId = {}, cur = null, values = {}, last = null, ready = false;
 let reqId = 0, inflight = null, dirty = false, timer = 0, syncAll = false;
 const pending = new Map();
 
 const setStatus = (t, cls = "") => { const s = $("status"); s.textContent = t; s.className = "status " + cls; };
-const call = (msg) => new Promise((resolve, reject) => { const id = ++reqId; pending.set(id, { resolve, reject }); worker.postMessage({ id, ...msg }); });
-worker.onmessage = ({ data }) => {
-  if (data.type === "meta") { articles = data.articles; byId = Object.fromEntries(articles.map((a) => [a.id, a])); buildTiles(); selectArticle((location.hash.slice(1) in byId ? location.hash.slice(1) : articles[0].id)); return; }
-  if (data.type === "ready") { ready = true; setStatus("готово"); request(0); return; }
-  const p = pending.get(data.id); if (!p) return; pending.delete(data.id);
-  data.type === "error" ? p.reject(new Error(data.message)) : p.resolve(data);
-};
-worker.onerror = (e) => setStatus("ошибка воркера: " + e.message, "err");
-worker.postMessage({ type: "init", base: new URL(BASE, location.href).href });
+const call = (msg) => new Promise((resolve, reject) => { if (!worker) return reject(new Error("CAD-ядро не запущено")); const id = ++reqId; pending.set(id, { resolve, reject }); worker.postMessage({ id, ...msg }); });
+// ---------- воркер, прогресс загрузки и показ ошибок (чтобы «загрузка CAD-ядра» никогда не висела молча) ----------
+const mb = (n) => (n / 1048576).toFixed(1);
+const diagText = () => [
+  "Страница: " + location.href,
+  "Браузер: " + navigator.userAgent,
+  "Память устройства (deviceMemory, ГБ): " + (navigator.deviceMemory ?? "н/д") + "; ядер: " + (navigator.hardwareConcurrency ?? "н/д"),
+  "Сеть: " + (navigator.connection ? [navigator.connection.effectiveType, navigator.connection.downlink && navigator.connection.downlink + " Мбит/с", navigator.connection.saveData && "экономия трафика ВКЛ"].filter(Boolean).join(", ") : "н/д"),
+  "WebAssembly: " + (typeof WebAssembly === "object" ? "есть" : "НЕТ") + "; Worker: " + (typeof Worker === "function" ? "есть" : "НЕТ"),
+  "Последний этап: " + lastStage,
+].join("\n");
+let lastStage = "старт", t0 = performance.now(), watchdog = 0;
+function showError(text) {
+  clearTimeout(watchdog); $("progress").hidden = true;
+  setStatus("Ошибка: " + text, "err");
+  const d = $("diag"); d.hidden = false; $("diag-text").textContent = "Ошибка: " + text + "\n" + diagText() + "\nВремя с начала загрузки: " + Math.round((performance.now() - t0) / 1000) + " с";
+}
+function showProgress(m) {
+  lastStage = m.text + (m.total ? ` [${mb(m.loaded)} из ${mb(m.total)} МБ]` : "");
+  const bar = $("progress"); bar.hidden = false;
+  if (m.compiling) { bar.removeAttribute("value"); setStatus(m.text, "busy"); return; }
+  if (m.total) { const pc = Math.min(99, Math.floor((m.loaded / m.total) * 100)); bar.value = pc; setStatus(`${m.text} ${pc}% (${mb(m.loaded)} МБ)`, "busy"); } else setStatus(m.text, "busy");
+}
+let worker;
+try { worker = new Worker(new URL("./worker/cad.worker.js", import.meta.url), { type: "module" }); }
+catch (e) { showError("не удалось создать фоновый поток (Web Worker): " + e.message + ". Нужен современный браузер (Chrome 80+/Safari 15+)."); }
+if (worker) {
+  worker.onmessage = ({ data }) => {
+    if (data.type === "meta") { articles = data.articles; byId = Object.fromEntries(articles.map((a) => [a.id, a])); buildTiles(); selectArticle((location.hash.slice(1) in byId ? location.hash.slice(1) : articles[0].id)); return; }
+    if (data.type === "stage") return showProgress(data);
+    if (data.type === "initerror") return showError(data.message + (data.stack ? "\n" + data.stack : ""));
+    if (data.type === "ready") { ready = true; clearTimeout(watchdog); $("progress").hidden = true; $("diag").hidden = true; setStatus("готово"); request(0); return; }
+    const p = pending.get(data.id); if (!p) return; pending.delete(data.id);
+    data.type === "error" ? p.reject(new Error(data.message)) : p.resolve(data);
+  };
+  worker.onerror = (e) => showError("воркер: " + (e.message || "скрипт воркера не загрузился или упал") + (e.filename ? ` (${e.filename}:${e.lineno})` : "") + (e.message ? "" : ". Возможные причины: блокировка скриптов, нехватка памяти, устаревший браузер."));
+  worker.onmessageerror = () => showError("воркер: ошибка передачи данных");
+  worker.postMessage({ type: "init", base: new URL(BASE, location.href).href });
+  // если за минуту CAD-ядро не готово: не пугаем ошибкой (мобильный интернет может быть медленным), но показываем диагностику
+  watchdog = setTimeout(() => { if (!ready) { const d = $("diag"); d.hidden = false; $("diag-text").textContent = "Загрузка идёт дольше обычного (> 60 с).\n" + diagText(); } }, 60000);
+}
+addEventListener("error", (e) => { if (!ready && e.message) showError(e.message); });
+addEventListener("unhandledrejection", (e) => { if (!ready) showError(String(e.reason && e.reason.message || e.reason)); });
+$("diag-copy").onclick = async () => { try { await navigator.clipboard.writeText($("diag-text").textContent); $("diag-copy").textContent = "Скопировано"; } catch { const r = document.createRange(); r.selectNodeContents($("diag-text")); getSelection().removeAllRanges(); getSelection().addRange(r); } };
 
 // ---------- плитки артикулов ----------
 function buildTiles() {

@@ -9,6 +9,8 @@
 </head>
 <body>
   <header><h1>Конфигуратор артикулов</h1><span id="status" class="status">загрузка CAD-ядра…</span></header>
+  <progress id="progress" max="100" hidden></progress>
+  <details id="diag" class="diag" open hidden><summary>Диагностика (отправьте этот текст разработчику)</summary><pre id="diag-text"></pre><button type="button" id="diag-copy" class="secondary">Скопировать</button></details>
   <main>
     <form id="form" autocomplete="off" onsubmit="return false">
       <h2>Артикул</h2>
