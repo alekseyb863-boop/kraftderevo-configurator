@@ -25,8 +25,8 @@ export const spec = {
   expectBBox: (p) => [p.W, p.D, p.H],
   view: { az: 35, el: 16 }, layout: "forms", auto: true,
   dims(p, k = 1) {
-    const { H, W, D } = p, O = 90 * k;
-    return [dimAB([0, 0, 0], [W, 0, 0], [0, -O, 0], [W, -O, 0], `${W} мм`), dimAB([0, 0, 0], [0, 0, H], [-O, 0, 0], [-O, 0, H], `${H} мм`),
+    const { H, W, D } = p, O = 125 * k, yh = (D - prof(p).a) / 2;   // высота: от пола до отмеченной вершины (верх левой стойки, ближняя к зрителю грань рамки, y = yc0)
+    return [dimAB([0, 0, 0], [W, 0, 0], [0, -O, 0], [W, -O, 0], `${W} мм`), dimAB([0, yh, 0], [0, yh, H], [-O, yh, 0], [-O, yh, H], `${H} мм`),
       dimAB([W, 0, 0], [W, D, 0], [W + O, 0, 0], [W + O, D, 0], `${D} мм`)];
   },
   textLines: (p) => ["Рейл В006-2", `Профиль ${prof(p).label} мм`, `Цвет: ${p.color}`, `Высота: ${p.H} мм`, `Ширина: ${p.W} мм`, `Глубина: ${p.D} мм`],

@@ -30,7 +30,7 @@ export const spec = {
   expectBBox: (p) => [p.W, p.D, p.H],
   view: { az: 35, el: 16 }, layout: "forms", auto: true,
   dims(p, k = 1) {
-    const { H, W, D } = p, O = 90 * k;
+    const { H, W, D } = p, O = 125 * k;
     return [dimAB([0, 0, 0], [W, 0, 0], [0, -O, 0], [W, -O, 0], `${W} мм`), dimAB([0, 0, 0], [0, 0, H], [-O, 0, 0], [-O, 0, H], `${H} мм`),
       dimAB([W, 0, 0], [W, D, 0], [W + O, 0, 0], [W + O, D, 0], `${D} мм`)];
   },
