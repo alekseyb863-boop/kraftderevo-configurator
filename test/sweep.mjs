@@ -7,7 +7,7 @@ import { setOC } from "replicad";
 import opencascade from "replicad-opencascadejs";
 const SHARED = path.resolve(process.env.SHARED || new URL("..", import.meta.url).pathname);
 const imp = (f) => import(pathToFileURL(path.join(SHARED, f)).href);
-const { ARTICLES } = await imp("registry.js"), { fuseAll, checkSolid, free } = await imp("lib/model.js"), { buildDrawing } = await imp("render/drawing.js");
+const { ARTICLES } = await imp("registry.js"), { fuseAll, checkSolid, assemble, checkAssembly, free } = await imp("lib/model.js"), { buildDrawing } = await imp("render/drawing.js");
 const { setFonts } = await imp("render/fonts.js");
 import fs from "node:fs";
 const fontDir = ["/usr/share/fonts/truetype/dejavu/", path.join(SHARED, "../../public/fonts/")].find((d) => fs.existsSync(d + "DejaVuSans.ttf"));
@@ -39,9 +39,9 @@ for (const S of ARTICLES) {
     total++;
     try {
       const { p, warnings } = S.normalize(cs.raw); if (warnings.length) warned++;
-      const exp = S.expectBBox(p), solid = fuseAll(S.parts(p)), chk = checkSolid(S.id, solid, exp);
-      const dr = buildDrawing({ solid, view: S.view, layout: S.layout, makeDims: (k) => S.dims(p, k), textLines: S.textLines(p) });
-      free(solid);
+      const exp = S.expectBBox(p), pieces = S.assembly ? S.parts(p) : null, solid = pieces ? assemble(pieces) : fuseAll(S.parts(p)), chk = pieces ? checkAssembly(S.id, pieces, exp) : checkSolid(S.id, solid, exp);
+      const dr = buildDrawing({ solid, view: S.view, layout: S.layout, makeDims: (k) => S.dims(p, k), textLines: S.textLines(p), extra: S.extraLines ? S.extraLines(p) : [] });
+      free(solid, pieces);
       if (dr.adjust.attempts > 1) { nAdj++; adjusted++; }
       const ok = chk.ok && dr.check.ok && S.normalize(p).warnings.length === 0;
       if (!ok) { bad++; console.log(`FAIL ${S.id} ${cs.name} ${JSON.stringify(p)} solids=${chk.solids} valid=${chk.occValid} wt=${chk.watertight} bbox=${chk.bbox} exp=${exp.map((v) => +v.toFixed(2))} overlap=${dr.check.ok} warn=${JSON.stringify(S.normalize(p).warnings)}`); } else nOK++;

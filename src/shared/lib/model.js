@@ -89,3 +89,26 @@ export function checkSolid(name, shape, expectBBox, tol = 0.01) {
   res.ok = res.solids === 1 && res.watertight && res.bboxOK !== false && res.occValid === true && res.shellClosed !== false;
   return res;
 }
+
+/** Сборка из нескольких тел, которые касаются только в точках (не сливаются): один compound; исходные тела остаются живыми (берутся копии). */
+export function assemble(parts) { return R.makeCompound(parts.map((s) => s.clone())); }
+/**
+ * Проверка сборки из отдельных тел: каждое тело валидно (1 solid, OCC-valid, замкнутая оболочка, герметичная сетка), габарит объединения == ожидаемому,
+ * попарные объёмы пересечения ~ 0.  Поля как у checkSolid (solids = число тел), плюс maxPairVolume.
+ */
+export function checkAssembly(name, parts, expectBBox, tol = 0.01) {
+  const per = parts.map((s, i) => checkSolid(name + "#" + (i + 1), s, null));
+  const lo = [0, 1, 2].map((k) => Math.min(...parts.map((s) => s.boundingBox.bounds[0][k]))), hi = [0, 1, 2].map((k) => Math.max(...parts.map((s) => s.boundingBox.bounds[1][k])));
+  let maxPairVolume = 0;
+  for (let i = 0; i < parts.length; i++) for (let j = i + 1; j < parts.length; j++) {
+    let v = 0; try { const c = parts[i].intersect(parts[j]); v = c ? Math.abs(R.measureVolume(c)) : 0; free(c); } catch { v = Infinity; }
+    maxPairVolume = Math.max(maxPairVolume, v);
+  }
+  const size = hi.map((v, k) => v - lo[k]);
+  const res = { name, solids: parts.length, faces: per.reduce((s, c) => s + c.faces, 0), occValid: per.every((c) => c.occValid === true), shellClosed: per.every((c) => c.shellClosed !== false),
+    watertight: per.every((c) => c.watertight), volume: per.reduce((s, c) => s + c.volume, 0), maxPairVolume, perPartOK: per.every((c) => c.ok) };
+  res.bbox = size.map((v) => +v.toFixed(4)); res.bboxMin = lo.map((v) => +v.toFixed(3));
+  res.bboxOK = expectBBox ? size.every((v, i) => Math.abs(v - expectBBox[i]) <= tol) : null;
+  res.ok = res.perPartOK && res.bboxOK !== false && maxPairVolume < 1e-3;
+  return res;
+}

@@ -6,7 +6,7 @@ import { setOC } from "replicad";
 import opencascade from "replicad-opencascadejs";
 import wasmUrl from "replicad-opencascadejs/wasm?url";
 import { BY_ID, meta } from "../shared/registry.js";
-import { fuseAll, checkSolid, free } from "../shared/lib/model.js";
+import { fuseAll, checkSolid, assemble, checkAssembly, free } from "../shared/lib/model.js";
 import { buildDrawing } from "../shared/render/drawing.js";
 import { setFonts } from "../shared/render/fonts.js";
 
@@ -61,8 +61,10 @@ self.postMessage({ type: "meta", articles: meta() });
 function build(article, raw) {
   const S = BY_ID[article];
   if (!S) throw new Error("неизвестный артикул " + article);
-  const { p, warnings } = S.normalize(raw), solid = fuseAll(S.parts(p));
-  return { S, p, warnings, solid };
+  const { p, warnings } = S.normalize(raw);
+  // spec.assembly: тела касаются только в точках и не сливаются — один compound из отдельных тел (проверка по каждому телу), а не fuseAll
+  const pieces = S.assembly ? S.parts(p) : null, solid = pieces ? assemble(pieces) : fuseAll(S.parts(p));
+  return { S, p, warnings, solid, pieces };
 }
 const sizeName = (S, p) => `${S.id}_${S.expectBBox(p).map((v) => Math.round(v)).join("x")}`;
 
@@ -72,21 +74,21 @@ self.onmessage = async ({ data }) => {
   try {
     await ready;
     if (type === "draw") {
-      const t0 = performance.now(), { S, p, warnings, solid } = build(data.article, data.params);
+      const t0 = performance.now(), { S, p, warnings, solid, pieces } = build(data.article, data.params);
       try {
-        const exp = S.expectBBox(p), chk = checkSolid(S.id, solid, exp);
-        const d = buildDrawing({ solid, view: S.view, layout: S.layout, makeDims: (k) => S.dims(p, k), textLines: S.textLines(p) });
+        const exp = S.expectBBox(p), chk = pieces ? checkAssembly(S.id, pieces, exp) : checkSolid(S.id, solid, exp);
+        const d = buildDrawing({ solid, view: S.view, layout: S.layout, makeDims: (k) => S.dims(p, k), textLines: S.textLines(p), extra: S.extraLines ? S.extraLines(p) : [] });
         self.postMessage({ id, type: "drawn", article: S.id, svg: d.svg, W: d.W, H: d.H, check: d.check, adjust: d.adjust, params: p, warnings,
           bbox: chk.bbox, expectBBox: exp.map((v) => +v.toFixed(3)), solid: { solids: chk.solids, valid: chk.occValid, watertight: chk.watertight, bboxOK: chk.bboxOK, ok: chk.ok },
           name: sizeName(S, p), ms: Math.round(performance.now() - t0) });
-      } finally { free(solid); }
+      } finally { free(solid); free(pieces); }
     } else if (type === "export") {
-      const { S, p, solid } = build(data.article, data.params);
+      const { S, p, solid, pieces } = build(data.article, data.params);
       try {
         const blob = solid.blobSTL({ tolerance: 0.05, angularTolerance: 0.1, binary: true });
         const buffer = await blob.arrayBuffer();
         self.postMessage({ id, type: "file", buffer, name: `${sizeName(S, p)}.${data.format}` }, [buffer]);
-      } finally { free(solid); }
+      } finally { free(solid); free(pieces); }
     }
   } catch (e) {
     self.postMessage({ id, type: "error", message: String((e && e.message) || e) });

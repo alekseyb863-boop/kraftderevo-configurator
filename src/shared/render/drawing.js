@@ -48,14 +48,17 @@ export const LAYOUTS = {
 const score = (r) => r.hdrVsLines + r.hdrVsDimSegs + r.hdrVsLabels + r.labelVsGeom + r.labelVsOtherDims + r.labelVsLabel + r.hdrVsHdr + r.outside.length;
 const f2 = (v) => +v.toFixed(2);
 
-export function svgString({ W, H, style, geom, built, header }) {
+export function svgString({ W, H, style, geom, built, header, extra = [] }) {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
   <rect width="${W}" height="${H}" fill="#fff"/>
   <g id="geometry" fill="none" stroke="#000" stroke-width="${f2(style.geomLW)}" stroke-linecap="round" stroke-linejoin="round">
     ${geom.map((pl) => `<polyline points="${pl.map((p) => f2(p[0]) + "," + f2(p[1])).join(" ")}"/>`).join("\n    ")}
   </g>
-  <g id="dimensions" fill="#000" stroke="#000" stroke-width="${f2(style.dimLW)}" stroke-linecap="butt">
+${extra.length ? `  <g id="box" fill="none" stroke="#000" stroke-width="${f2(pt(0.7))}" stroke-linecap="round">
+    ${extra.map((pl) => `<polyline points="${pl.map((p) => f2(p[0]) + "," + f2(p[1])).join(" ")}"/>`).join("\n    ")}
+  </g>
+` : ""}  <g id="dimensions" fill="#000" stroke="#000" stroke-width="${f2(style.dimLW)}" stroke-linecap="butt">
     ${built.flatMap((b) => b.svg).join("\n    ")}
   </g>
   <g id="info" fill="#000" stroke="none">
@@ -70,17 +73,17 @@ export function svgString({ W, H, style, geom, built, header }) {
  * auto=false -> exactly one pass with the reference layout (what build.js uses so previews stay identical).
  * returns { svg, W, H, check, projection, header, adjust }
  */
-export function buildDrawing({ solid, view, layout, makeDims, textLines, auto = true, margin = 8 }) {
+export function buildDrawing({ solid, view, layout, makeDims, textLines, auto = true, margin = 8, extra = [] }) {
   const proj = projectSolid(solid, view.az, view.el);
   const attempt = (layoutName, k, shrink, search) => {
     const dims = makeDims(k);
-    const dimPts = dims.flatMap((d) => [proj.P2(...d.a), proj.P2(...d.b)]);
+    const dimPts = [...dims.flatMap((d) => [proj.P2(...d.a), proj.P2(...d.b)]), ...extra.flatMap(([a, b]) => [proj.P2(...a), proj.P2(...b)])];
     const L = LAYOUTS[layoutName](proj.lines, dimPts, textLines.length, { shrink }), { W, H, toPx, style } = L;
-    const geom = proj.lines.map((pl) => pl.map(toPx));
+    const geom = proj.lines.map((pl) => pl.map(toPx)), extraPx = extra.map(([a, b]) => [toPx(proj.P2(...a)), toPx(proj.P2(...b))]), geomAll = extraPx.length ? [...geom, ...extraPx] : geom;
     const header = layoutTextBlock(textLines, style);
     const shifts = dims.map((d) => d.shift || 0);
     const build = () => dims.map((d, i) => buildDim({ ...d, shift: shifts[i] }, { P2: proj.P2, toPx, scale: L.scale, style, occ: proj.occ }));
-    const run = () => { const built = build(); return { built, check: overlapCheck({ geom, dims: built, header, W, H, margin }) }; };
+    const run = () => { const built = build(); return { built, check: overlapCheck({ geom: geomAll, dims: built, header, W, H, margin }) }; };
     let cur = run();
     // part of the score that moving the labels can never change (header vs geometry / dimension lines / header, header outside the page)
     const fixed = (c) => c.hdrVsLines + c.hdrVsDimSegs + c.hdrVsHdr + c.outside.filter((o) => !o.startsWith("dim:")).length;
@@ -105,7 +108,7 @@ export function buildDrawing({ solid, view, layout, makeDims, textLines, auto = 
         if (!improved) break;
       }
     }
-    return { ...cur, geom, header, W, H, style, toPx, layoutName, k, shrink, shifts, sc: score(cur.check) };
+    return { ...cur, geom, extra: extraPx, header, W, H, style, toPx, layoutName, k, shrink, shifts, sc: score(cur.check) };
     };
     // search can only help if the unfixable part of the score is zero; otherwise it is deferred (see buildDrawing)
     return { sc0: score(cur.check), hopeless: !!search && fixed(cur.check) > 0, finish };
