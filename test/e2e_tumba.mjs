@@ -45,7 +45,7 @@ try {
   // чертёж: подписи по фото
   let tx = await texts();
   const cnt = (s) => tx.filter((t) => t === s).length;
-  ok(tx.includes("Тумба кух.") && tx.includes("Чертеж в изометрической проекции") && tx.includes("Длина 780 × Ширина 300 × Высота 300 мм") && tx.includes("Профиль 20×20 мм") && !tx.some((t) => /IKEA/i.test(t)), "заголовок, «Чертеж в изометрической проекции», размеры, профиль: " + tx.slice(0, 5).join(" | "));
+  ok(tx.includes("Тумба кух.") && !tx.some((t) => /изометрической проекции|Ø/.test(t)) && tx.includes("Длина 780 × Ширина 300 × Высота 300 мм") && tx.includes("Профиль 20×20 мм") && !tx.some((t) => /IKEA/i.test(t)), "заголовок без подзаголовка «Чертеж в изометрической проекции», размеры, профиль, без Ø: " + tx.slice(0, 5).join(" | "));
   ok(cnt("780 мм") === 1 && cnt("75 мм") === 2 && cnt("210 мм") === 5 && cnt("180 мм") === 2, "верхняя цепочка: 780 над 75/210/210/210/75 и нижняя 180/210/210/180");
   ok(cnt("300 мм") === 2 && cnt("150 мм") === 2 && cnt("100 мм") === 1, "слева 300 + 150/150, справа 300 + 100: " + tx.filter((t) => /мм$/.test(t) && !/×/.test(t)).join(" "));
   ok(tx.filter((t) => /^[\d.]+ мм$/.test(t)).length === 15, "всего размеров: 15 (780+5, 300+2, 300+1, 4 снизу)");
@@ -64,7 +64,7 @@ try {
     await page.waitForTimeout(200);
     await good(`Длина ${c.v.W}, ${c.v.n} отв.`, [c.v.W, 300, 300]);
     tx = await texts();
-    ok(tx.includes(`Отверстия Ø5: ${c.v.n} шт., отступ ${c.e} мм, шаг ${c.s} мм`) && tx.includes(`${c.e} мм`) && tx.includes(`${c.s} мм`), `  отступ ${c.e}, шаг ${c.s} (подпись и размерные линии обновились)`);
+    ok(tx.includes(`Отверстия ${c.v.n} шт., отступ ${c.e} мм, шаг ${c.s} мм`) && tx.includes(`${c.e} мм`) && tx.includes(`${c.s} мм`), `  отступ ${c.e}, шаг ${c.s} (подпись и размерные линии обновились)`);
   }
   await set("W", 780); await set("n", 4); await wait((l) => l.params.W === 780 && l.params.n === 4);
   for (const [W, D, H, pr] of [[1200, 400, 500, "40x40"], [600, 250, 350, "30x20"], [2000, 600, 800, "50x25"], [500, 800, 200, "25x25"]]) {
@@ -79,8 +79,8 @@ try {
   await page.selectOption('#controls [data-key="profile"] select', "20x20"); await set("W", 780); await set("D", 300); await set("H", 300);
   await wait((l) => l.params.W === 780 && l.params.D === 300 && l.params.H === 300 && l.params.profile === "20x20");
   await set("hh", 5); await wait((l) => l.params.hh > 5 && l.params.hh < 100);
-  L = await good("высота отверстий к стене 5 → допустимый минимум", null);
-  ok(L.params.hh >= 28 && (await warns()).length > 0, `  предупреждение вместо падения: hh=${L.params.hh}; ` + (await warns()).join(" | "));
+  L = await good("высота отверстий к стене 5 → допустимый минимум (от нижней грани верхнего профиля)", null);
+  ok(L.params.hh >= 20 && (await warns()).length > 0, `  предупреждение вместо падения: hh=${L.params.hh}; ` + (await warns()).join(" | "));
   await set("hh", 100); await wait((l) => l.params.hh === 100);
   await set("hmin", 90); await set("hmax", 80); await wait((l) => l.params.hmin === 90 && l.params.hmax === 90);
   L = await good("отступ мин 90 > макс 80 → макс = 90", null);

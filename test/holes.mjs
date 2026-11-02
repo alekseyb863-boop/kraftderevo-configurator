@@ -50,4 +50,17 @@ t("модель: n=8 при 780 → 7; n=6/7 не меняются; шаг ≥ 1
     if (p.n < c) assert.ok(H(W, p.n + 1, p.hmin, p.hmax).s < 100, `W=${W}: n=${p.n + 1} ещё допустимо`);   // взято наибольшее допустимое n
   }
 });
+t("модель: привязки высот и отверстие в стойке — для любого профиля", () => {
+  for (const pr of ["20x20", "25x25", "30x30", "40x40", "30x20", "40x20", "50x25"]) {
+    const { p } = S.normalize({ profile: pr }), { b } = derive(p), d = S.dims(p, 1);
+    const all = d.find((x) => x.text === `${p.H} мм` && x.s0[0] === p.W), hh = d.find((x) => x.text === `${p.hh} мм` && x.s0[0] === p.W);
+    assert.deepEqual([all.s0, all.s1], [[p.W, p.D, 0], [p.W, p.D, p.H]]);                                  // красные точки: ближняя к стене кромка, низ … верх рамы
+    assert.deepEqual([hh.s0[2], hh.s1[2]], [p.H - b, p.H - b - p.hh]);                                       // синие: низ верхнего профиля … центр отверстия
+    assert.equal(hh.s0[1], p.D - derive(p).a); assert.equal(hh.s1[1], hh.s0[1]);
+    const post = S.marks(p).filter((c) => c.every((q) => q[1] === p.D - derive(p).a && Math.abs(q[0] - derive(p).a / 2) < 3)).filter((c) => c[0][2] < p.H - b);
+    const cz = (Math.min(...post[0].map((q) => q[2])) + Math.max(...post[0].map((q) => q[2]))) / 2;
+    assert.ok(Math.abs(cz - (p.H - b - p.hh)) < 1e-6, `${pr}: отверстие в стойке на высоте ${cz}`);
+  }
+});
+t("в подписях чертежа нет подзаголовка и диаметра", () => { const tl = S.textLines(S.normalize({}).p); assert.deepEqual(tl, ["Тумба кух.", "Длина 780 × Ширина 300 × Высота 300 мм", "Профиль 20×20 мм", "Отверстия 4 шт., отступ 75 мм, шаг 210 мм"]); });
 console.log(`ВСЕ ПРОВЕРКИ ПРОЙДЕНЫ (${n})`);

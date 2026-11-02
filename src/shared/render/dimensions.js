@@ -47,7 +47,12 @@ export function buildDim(d, ctx) {
   if (ang > 90) ang -= 180; if (ang < -90) ang += 180;
   const size = pt(style.fs), lb = layoutBox(d.text, size), padp = pt(2.5);
   const boxW = lb.width + 2 * padp, boxH = lb.h + 2 * padp;
-  if (d.out && (Math.abs(d.out) > 1 || boxW + 2 * hl > Ln)) mid = add(d.out > 0 ? B : A, mul(u, (d.out > 0 ? 1 : -1) * (boxW / 2 + 22) + (d.shift || 0)));   // label does not fit between the arrows: beyond the end
+  if (d.lab && d.lab.rot) {                                                // свой угол подписи: вдоль проекции 3D-направления или горизонтально
+    if (d.lab.rot === "h") ang = 0;
+    else { const v = P2(...d.lab.rot); ang = (Math.atan2(-v[1], v[0]) * 180) / Math.PI; if (ang > 90) ang -= 180; if (ang < -90) ang += 180; }
+  }
+  if (d.lab && d.lab.push) { const v = P2(...d.lab.push[0]), nn = Math.hypot(v[0], v[1]); mid = add(mid, mul([v[0] / nn, -v[1] / nn], d.lab.push[1])); }
+  if (!d.lab && d.out && (Math.abs(d.out) > 1 || boxW + 2 * hl > Ln)) mid = add(d.out > 0 ? B : A, mul(u, (d.out > 0 ? 1 : -1) * (boxW / 2 + 22) + (d.shift || 0)));   // label does not fit between the arrows: beyond the end
   const cy = (lb.top - lb.bottom) / 2;                                    // box centre is (top-bottom)/2 above the baseline
   const tw = lb.width, base = cy;                                         // baseline offset from centre (y down: +)
   const pathD = textPathD(d.text, -tw / 2, base, size, false);

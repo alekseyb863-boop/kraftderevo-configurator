@@ -37,6 +37,8 @@ const pxFor = (p, g) => {
   return Math.min(1420 / (Math.max(...xs) - Math.min(...xs)), 677 / (Math.max(...ys) - Math.min(...ys)));
 };
 const spread = (p) => Math.min(3, Math.max(1, REF_PX / pxFor(p, 1)));
+/** подписи размеров: поперёк цепочки сверху (вдоль оси Y), сбоку от цепочки слева (вдоль оси X, левее линии), горизонтально справа */
+const ROT_Y = { rot: [0, 1, 0] }, SIDE_X = { rot: [1, 0, 0], push: [[-1, 0, 0], 62] }, HORIZ = { rot: "h" };
 const prof = (p) => findIn(PROFILES, p.profile);
 const fmt = (v) => String(+(+v).toFixed(1));
 
@@ -45,7 +47,7 @@ const braceTouch = (p, a, b) => b * Math.hypot(p.D - a, p.H - b) / (p.D - a);
 /** производные величины: положение отверстий и пределы высоты отверстия в стойке */
 export function derive(p) {
   const { a, b } = prof(p), g = holePositions(p.W, p.n, p.hmin, p.hmax), zu = braceTouch(p, a, b);
-  return { a, b, ...g, zu, hhMin: Math.ceil(b + MIN_POST_HOLE), hhMax: Math.floor(p.H - zu - MIN_POST_HOLE) };
+  return { a, b, ...g, zu, hhMin: MIN_POST_HOLE, hhMax: Math.floor(p.H - b - zu - MIN_POST_HOLE) };
 }
 /** полоса раскоса в плоскости (y, z): между линией (0, H−b)→(D−a, 0) и параллельной ей на расстоянии b выше, внутри прямоугольника [0, D] × [0, H−b] */
 export function bracePolygon(D, H, a, b) {
@@ -99,7 +101,7 @@ export const spec = {
     for (let g = holePositions(p.W, p.n, p.hmin, p.hmax); p.n > 2 && g.s < MIN_STEP; g = holePositions(p.W, p.n, p.hmin, p.hmax)) { say(`«Количество отверстий»: ${p.n} → ${p.n - 1} (шаг между отверстиями меньше ${MIN_STEP} мм).`); p.n--; }
     // высота отверстия в стойке: ниже верхнего профиля и выше места, где раскос примыкает к стойке
     const g = derive(p), hhMax = Math.max(g.hhMin, g.hhMax), hh = Math.min(hhMax, Math.max(g.hhMin, p.hh));
-    if (hh !== p.hh) { say(`«Высота отверстий к стене»: ${p.hh} → ${hh} мм (отверстие должно быть на стойке: от ${g.hhMin} до ${hhMax} мм от верха).`); p.hh = hh; }
+    if (hh !== p.hh) { say(`«Высота отверстий к стене»: ${p.hh} → ${hh} мм (отверстие должно быть на стойке: от ${g.hhMin} до ${hhMax} мм от нижней грани верхнего профиля).`); p.hh = hh; }
     return { p, warnings };
   },
   derive,
@@ -113,28 +115,29 @@ export const spec = {
     const { a, b, positions, mids } = derive(p), { W: L, D, H } = p, out = [];
     for (const x of positions) out.push(circle([x, D - a / 2, H], "z"), circle([x, a / 2, H], "z"));      // верх заднего и переднего профилей
     for (const x of mids) out.push(circle([x, D - a, b / 2], "y"), circle([x, D - a, H - b / 2], "y"));      // нижний и задний верхний профили, комнатная грань
-    for (const x of [a / 2, L - a / 2]) out.push(circle([x, D / 2, H], "z"), circle([x, D - a, H - p.hh], "y"));   // боковые профили и стойки
+    for (const x of [a / 2, L - a / 2]) out.push(circle([x, D / 2, H], "z"), circle([x, D - a, H - b - p.hh], "y"));   // боковые профили и стойки
     return out;
   },
   dims(p, k0 = 1) {
     const k = k0 * spread(p);
     const { a, b, positions, mids } = derive(p), { W: L, D, H, hh } = p, d = [], t = (v) => `${fmt(v)} мм`;
     // сверху, дальняя сторона: общая Длина и под ней цепочка отступ / шаг / … / отступ вдоль отверстий заднего профиля
-    const yo1 = D + 85 * k, yo2 = D + 165 * k, yh = D - a / 2, xs = [0, ...positions, L];
+    const yo1 = D + 85 * k, yo2 = D + 225 * k, yh = D - a / 2, xs = [0, ...positions, L];
     d.push(dimAB([0, D, H], [L, D, H], [0, yo2, H], [L, yo2, H], t(L)));
-    for (let i = 0; i < xs.length - 1; i++) d.push(dimAB(i === 0 ? [0, D, H] : [xs[i], yh, H], i === xs.length - 2 ? [L, D, H] : [xs[i + 1], yh, H], [xs[i], yo1, H], [xs[i + 1], yo1, H], t(xs[i + 1] - xs[i]), 0, i === 0 ? -1 : i === xs.length - 2 ? 1 : 0));
+    for (let i = 0; i < xs.length - 1; i++) d.push(dimAB(i === 0 ? [0, D, H] : [xs[i], yh, H], i === xs.length - 2 ? [L, D, H] : [xs[i + 1], yh, H], [xs[i], yo1, H], [xs[i + 1], yo1, H], t(xs[i + 1] - xs[i]), 0, 0, ROT_Y));
     // слева сверху: общая Ширина и цепочка 50 % / 50 % до бокового отверстия
-    const xo1 = -35 * k, xo2 = -140 * k;
+    const xo1 = -35 * k, xo2 = -170 * k;
     d.push(dimAB([0, 0, H], [0, D, H], [xo2, 0, H], [xo2, D, H], t(D)));
-    d.push(dimAB([0, 0, H], [a / 2, D / 2, H], [xo1, 0, H], [xo1, D / 2, H], t(D / 2), 0, -2), dimAB([a / 2, D / 2, H], [0, D, H], [xo1, D / 2, H], [xo1, D, H], t(D / 2), 0, 2));
-    // справа: общая Высота и расстояние от верха до отверстия в стойке
-    const zy = D - a;
-    d.push(dimAB([L, zy, 0], [L, zy, H], [L + 130 * k, zy, 0], [L + 130 * k, zy, H], t(H)));
-    d.push(dimAB([L, zy, H], [L - a / 2, zy, H - hh], [L + 60 * k, zy, H], [L + 60 * k, zy, H - hh], t(hh)));
+    d.push(dimAB([0, 0, H], [a / 2, D / 2, H], [xo1, 0, H], [xo1, D / 2, H], t(D / 2), 0, 0, SIDE_X), dimAB([a / 2, D / 2, H], [0, D, H], [xo1, D / 2, H], [xo1, D, H], t(D / 2), 0, 0, SIDE_X));
+    // справа (подписи горизонтально): общая Высота — по ближней к стене вертикальной кромке правого конца (верх рамы … низ стойки);
+    // «Высота отверстий к стене» — по передней грани стойки: от нижней грани верхнего профиля до центра отверстия в стойке
+    const zy = D - a, zh = H - b - hh;
+    d.push(dimAB([L, D, 0], [L, D, H], [L + 118 * k, D, 0], [L + 118 * k, D, H], t(H), 0, 0, HORIZ));
+    d.push(dimAB([L, zy, H - b], [L, zy, zh], [L + 60 * k, zy, H - b], [L + 60 * k, zy, zh], t(hh), 0, 0, HORIZ));
     // снизу: цепочка 180 / 210 / … / 180 по промежуточным отверстиям нижнего профиля
     const zo = -60 * k, bx = [0, ...mids, L];
     for (let i = 0; i < bx.length - 1; i++) d.push(dimAB(i === 0 ? [0, zy, 0] : [bx[i], zy, b / 2], i === bx.length - 2 ? [L, zy, 0] : [bx[i + 1], zy, b / 2], [bx[i], zy, zo], [bx[i + 1], zy, zo], t(bx[i + 1] - bx[i])));
     return d;
   },
-  textLines: (p) => { const g = derive(p); return ["Тумба кух.", "Чертеж в изометрической проекции", `Длина ${p.W} × Ширина ${p.D} × Высота ${p.H} мм`, `Профиль ${prof(p).label} мм`, `Отверстия Ø${HOLE_D}: ${p.n} шт., отступ ${fmt(g.e)} мм, шаг ${fmt(g.s)} мм`]; },
+  textLines: (p) => { const g = derive(p); return ["Тумба кух.", `Длина ${p.W} × Ширина ${p.D} × Высота ${p.H} мм`, `Профиль ${prof(p).label} мм`, `Отверстия ${p.n} шт., отступ ${fmt(g.e)} мм, шаг ${fmt(g.s)} мм`]; },
 };
