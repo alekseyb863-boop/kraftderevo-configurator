@@ -17,7 +17,7 @@ setOC(await opencascade());
 
 const N = Number(process.argv[2] || 25), only = process.argv.slice(3);
 let seed = 12345; const rnd = () => ((seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296);
-let total = 0, bad = 0, adjusted = 0, warned = 0; const t0 = Date.now();
+let total = 0, bad = 0, adjusted = 0, warned = 0, softOK = 0; const t0 = Date.now();
 for (const S of ARTICLES) {
   if (only.length && !only.includes(S.id)) continue;
   const def = S.normalize({}).p, nums = S.controls.filter((c) => c.type === "range"), sels = S.controls.filter((c) => c.type === "select");
@@ -40,8 +40,9 @@ for (const S of ARTICLES) {
     try {
       const { p, warnings } = S.normalize(cs.raw); if (warnings.length) warned++;
       const exp = S.expectBBox(p), pieces = S.assembly ? S.parts(p) : null, solid = pieces ? assemble(pieces) : fuseAll(S.parts(p)), chk = pieces ? checkAssembly(S.id, pieces, exp) : checkSolid(S.id, solid, exp);
-      const dr = buildDrawing({ solid, view: S.view, layout: S.layout, makeDims: (k) => S.dims(p, k), textLines: S.textLines(p), extra: S.extraLines ? S.extraLines(p) : [] });
+      const dr = buildDrawing({ solid, view: S.view, layout: S.layout, makeDims: (k) => S.dims(p, k), textLines: S.textLines(p), extra: S.extraLines ? S.extraLines(p) : [], marks: S.marks ? S.marks(p) : [], soft: !!S.softOverlap });
       free(solid, pieces);
+      if (dr.check.soft) softOK++;
       if (dr.adjust.attempts > 1) { nAdj++; adjusted++; }
       const ok = chk.ok && dr.check.ok && S.normalize(p).warnings.length === 0;
       if (!ok) { bad++; console.log(`FAIL ${S.id} ${cs.name} ${JSON.stringify(p)} solids=${chk.solids} valid=${chk.occValid} wt=${chk.watertight} bbox=${chk.bbox} exp=${exp.map((v) => +v.toFixed(2))} overlap=${dr.check.ok} warn=${JSON.stringify(S.normalize(p).warnings)}`); } else nOK++;
@@ -49,5 +50,5 @@ for (const S of ARTICLES) {
   }
   console.log(`${S.id}: ${nOK}/${cases.length} OK (drawing auto-adjusted in ${nAdj})`);
 }
-console.log(`TOTAL ${total} cases, ${bad} failures, ${adjusted} auto-adjusted drawings, ${warned} cases with normalisation messages, ${((Date.now() - t0) / 1000).toFixed(0)} s`);
+console.log(`TOTAL ${total} cases, ${bad} failures, ${adjusted} auto-adjusted drawings, ${warned} cases with normalisation messages, ${softOK} with softened overlap check (touching dimension labels, TUMBA_KUH only), ${((Date.now() - t0) / 1000).toFixed(0)} s`);
 process.exit(bad ? 1 : 0);

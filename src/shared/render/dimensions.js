@@ -47,6 +47,7 @@ export function buildDim(d, ctx) {
   if (ang > 90) ang -= 180; if (ang < -90) ang += 180;
   const size = pt(style.fs), lb = layoutBox(d.text, size), padp = pt(2.5);
   const boxW = lb.width + 2 * padp, boxH = lb.h + 2 * padp;
+  if (d.out && (Math.abs(d.out) > 1 || boxW + 2 * hl > Ln)) mid = add(d.out > 0 ? B : A, mul(u, (d.out > 0 ? 1 : -1) * (boxW / 2 + 22) + (d.shift || 0)));   // label does not fit between the arrows: beyond the end
   const cy = (lb.top - lb.bottom) / 2;                                    // box centre is (top-bottom)/2 above the baseline
   const tw = lb.width, base = cy;                                         // baseline offset from centre (y down: +)
   const pathD = textPathD(d.text, -tw / 2, base, size, false);

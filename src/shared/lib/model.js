@@ -10,6 +10,12 @@ export function prism(pts, y0, y1) {
   for (const p of pts.slice(1)) d = d.lineTo(p);
   return d.close().sketchOnPlane("XZ").extrude(y1 - y0).translate([0, y1, 0]);
 }
+/** Extrude polygon pts=[[y,z],...] (plane YZ) over x0..x1 (for members whose profile lies in the side view). */
+export function prismYZ(pts, x0, x1) {
+  let d = R.draw(pts[0]);
+  for (const p of pts.slice(1)) d = d.lineTo(p);
+  return d.close().sketchOnPlane("YZ").extrude(x1 - x0).translate([x0, 0, 0]);
+}
 /** Axis-aligned box (profile block) x0..x1, y0..y1, z0..z1. */
 export const box = (x0, x1, y0, y1, z0, z1) => prism([[x0, z0], [x1, z0], [x1, z1], [x0, z1]], y0, y1);
 
