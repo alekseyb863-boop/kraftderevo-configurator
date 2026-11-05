@@ -1,7 +1,7 @@
 {
   "name": "kraftderevo-configurator-v2",
   "version": "2.0.0",
-  "description": "Конфигуратор 15 артикулов, «Ёж» и «Тумба кух.» (replicad/OpenCascade WASM в Web Worker -> чертёж SVG)",
+  "description": "Конфигуратор 15 артикулов, «Ёж», «Вешалка В012» и «Тумба кух.» (replicad/OpenCascade WASM в Web Worker -> чертёж SVG)",
   "type": "module",
   "engines": {
     "node": ">=26"
