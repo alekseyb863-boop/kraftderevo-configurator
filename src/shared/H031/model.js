@@ -10,11 +10,13 @@ export const legFrame = (W, H, pr) => frame([[0, 0], [W, 0], [W, H], [0, H]], [p
 const PLATE_T = 4;
 const HOLE_R = 2.5;
 const HOLE_GAP = 8;
+/** те же сечения, что у остальных опор, плюс квадрат 20×20 */
+const PROFILES_H031 = [{ id: "20x20", a: 20, b: 20, label: "20×20" }, ...PROFILES];
 
 const controls = [
   range("W", "Ширина", 150, 1000, 10, 450),
   range("H", "Высота", 300, 1500, 10, 1050),
-  profileCtl("40x20"),
+  profileCtl("40x20", "profile", "Профиль", PROFILES_H031),
   colorCtl("черный"),
   { ...checkCtl("plate", "Площадка для крепления", true), extra: true },
   { ...range("PL", "Длина площадки", 40, 1000, 1, 150), extra: true, depends: "plate" },
@@ -25,7 +27,7 @@ const controls = [
   { ...checkCtl("wallBot", "Отверстие к стене снизу", false), extra: true },
 ];
 
-const prof = (p) => findIn(PROFILES, p.profile);
+const prof = (p) => findIn(PROFILES_H031, p.profile);
 
 /** i-е отверстие из n на отрезке длиной L, с тем же зазором от краёв, что и между центрами. */
 function spaced(n, length, origin) {
