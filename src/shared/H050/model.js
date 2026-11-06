@@ -83,9 +83,9 @@ export const spec = {
     return out;
   },
   dims(p, k = 1) {
-    const { WT, WB, H } = p, d = (WT - WB) / 2, O = 90 * k;
+    const { WT, WB, H } = p, d = (WT - WB) / 2, O = 90 * k, y = prof(p).a;
     return [dimAB([d, 0, 0], [d + WB, 0, 0], [d, -O, 0], [d + WB, -O, 0], `${WB} мм`, WB <= 250 ? 135 : 0),
-      dimAB([0, 0, H], [WT, 0, H], [0, 0, H + O], [WT, 0, H + O], `${WT} мм`),
+      dimAB([0, y, H], [WT, y, H], [0, y, H + O], [WT, y, H + O], `${WT} мм`),
       dimAB([0, 0, 0], [0, 0, H], [-O, 0, 0], [-O, 0, H], `${H} мм`)];
   },
   textLines: (p) => {
