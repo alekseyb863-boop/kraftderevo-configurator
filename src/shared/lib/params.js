@@ -19,6 +19,8 @@ export const select = (key, label, list, def) => ({ type: "select", key, label, 
 export const profileCtl = (def, key = "profile", label = "Профиль", list = PROFILES) => select(key, label, list, def);
 export const stripCtl = (def, key = "strip", label = "Полоса") => select(key, label, STRIPS, def);
 export const colorCtl = (def) => ({ type: "text", key: "color", label: "Цвет", def, suggestions: COLORS });
+export const checkCtl = (key, label, def = false) => ({ type: "check", key, label, def });
+export const intCtl = (key, label, min, max, def) => ({ type: "int", key, label, min, max, step: 1, def });
 
 export const findIn = (list, id) => list.find((x) => x.id === id);
 
@@ -35,6 +37,15 @@ export function baseNormalize(controls, raw = {}) {
       v = r;
     } else if (c.type === "select") {
       if (!c.options.some((o) => o.value === v)) v = c.def;
+    } else if (c.type === "check") {
+      if (v === undefined || v === null || v === "") v = c.def;
+      else v = v === true || v === 1 || v === "1" || v === "true" || v === "on";
+    } else if (c.type === "int") {
+      v = Number(v);
+      if (!Number.isFinite(v)) v = c.def;
+      const r = Math.min(c.max, Math.max(c.min, Math.round(v)));
+      if (Number.isFinite(Number(raw[c.key])) && r !== Math.round(Number(raw[c.key]))) warnings.push(`«${c.label}»: допустимо ${c.min}–${c.max}, значение ${Math.round(Number(raw[c.key]))} заменено на ${r}.`);
+      v = r;
     } else {
       v = String(v ?? "").trim().replace(/\s+/g, " ").slice(0, 40);
       if (!v) v = c.def;

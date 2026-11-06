@@ -18,6 +18,14 @@ form { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 2p
 .row > span:first-child { font-size: 13px; }
 .row .unit { color: #888; font-size: 12px; }
 .row.sel select, .row.txt input { grid-column: 2 / 5; }
+details.extra { margin-top: 8px; border-top: 1px solid #e6e6e6; padding-top: 4px; }
+details.extra summary { cursor: pointer; font-size: 13px; font-weight: 650; padding: 6px 0; }
+details.extra .row { grid-template-columns: minmax(108px, 1.35fr) minmax(52px, 1fr) 58px 22px; }
+details.extra .row > span:first-child { line-height: 1.2; }
+details.extra .row.check { grid-template-columns: 1fr 18px; }
+details.extra .row.check input { width: 16px; height: 16px; margin: 0; justify-self: end; padding: 0; }
+details.extra .row.int { grid-template-columns: 1fr 72px; }
+details.extra .row.int input { grid-column: auto; width: 72px; justify-self: end; }
 input[type=range] { width: 100%; margin: 0; }
 input[type=text], input[type=number], select { font: inherit; padding: 4px 6px; border: 1px solid #bbb; border-radius: 5px; width: 100%; background: #fff; }
 .buttons { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }

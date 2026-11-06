@@ -70,42 +70,75 @@ function selectArticle(id) {
 }
 
 // ---------- поля параметров ----------
+function controlRow(c) {
+  const row = document.createElement("div"); row.dataset.key = c.key;
+  if (c.depends) row.dataset.depends = c.depends;
+  if (c.type === "range") {
+    row.className = "row";
+    row.innerHTML = `<span>${c.label}</span><input type="range" min="${c.min}" max="${c.max}" step="${c.step}" aria-label="${c.label}"><input type="number" min="${c.min}" max="${c.max}" step="${c.step}" aria-label="${c.label}, число"><span class="unit">${c.unit}</span>`;
+    const [r, n] = row.querySelectorAll("input"); r.value = n.value = values[c.key];
+    r.oninput = () => { n.value = r.value; values[c.key] = Number(r.value); request(); };
+    n.oninput = () => { if (n.value === "" || !Number.isFinite(Number(n.value))) return; r.value = n.value; values[c.key] = Number(n.value); request(); };
+    n.onchange = () => { if (n.value === "") n.value = values[c.key]; syncAll = true; request(0); };
+    r.onchange = () => { syncAll = true; request(0); };
+  } else if (c.type === "int") {
+    row.className = "row int";
+    row.innerHTML = `<span>${c.label}</span><input type="number" min="${c.min}" max="${c.max}" step="1" aria-label="${c.label}">`;
+    const n = row.querySelector("input"); n.value = values[c.key];
+    n.oninput = () => { if (n.value === "" || !Number.isFinite(Number(n.value))) return; values[c.key] = Number(n.value); request(); };
+    n.onchange = () => { if (n.value === "") n.value = values[c.key]; syncAll = true; request(0); };
+  } else if (c.type === "check") {
+    row.className = "row check";
+    row.innerHTML = `<span>${c.label}</span><input type="checkbox" aria-label="${c.label}">`;
+    const box = row.querySelector("input"); box.checked = !!values[c.key];
+    box.onchange = () => { values[c.key] = box.checked; applyDepends(); syncAll = true; request(0); };
+  } else if (c.type === "select") {
+    row.className = "row sel";
+    row.innerHTML = `<span>${c.label}</span><select aria-label="${c.label}">${c.options.map((o) => `<option value="${o.value}">${o.label} мм</option>`).join("")}</select>`;
+    const s = row.querySelector("select"); s.value = values[c.key];
+    s.onchange = () => { values[c.key] = s.value; syncAll = true; request(0); };
+  } else {
+    row.className = "row txt";
+    const dl = `dl-${c.key}`;
+    row.innerHTML = `<span>${c.label}</span><input type="text" list="${dl}" maxlength="40" aria-label="${c.label}"><datalist id="${dl}">${(c.suggestions || []).map((s) => `<option value="${s}">`).join("")}</datalist>`;
+    const t = row.querySelector("input"); t.value = values[c.key];
+    t.oninput = () => { values[c.key] = t.value; request(); };
+    t.onchange = () => { if (!t.value.trim()) { t.value = c.def; values[c.key] = c.def; request(0); } };
+  }
+  return row;
+}
+function applyDepends() {
+  const plate = !!values.plate;
+  for (const row of $("controls").querySelectorAll("[data-depends]")) row.hidden = row.dataset.depends === "plate" && !plate;
+}
 function buildControls() {
   const box = $("controls"); box.innerHTML = "";
-  for (const c of cur.controls) {
-    const row = document.createElement("div"); row.dataset.key = c.key;
-    if (c.type === "range") {
-      row.className = "row";
-      row.innerHTML = `<span>${c.label}</span><input type="range" min="${c.min}" max="${c.max}" step="${c.step}" aria-label="${c.label}"><input type="number" min="${c.min}" max="${c.max}" step="${c.step}" aria-label="${c.label}, число"><span class="unit">${c.unit}</span>`;
-      const [r, n] = row.querySelectorAll("input"); r.value = n.value = values[c.key];
-      r.oninput = () => { n.value = r.value; values[c.key] = Number(r.value); request(); };
-      n.oninput = () => { if (n.value === "" || !Number.isFinite(Number(n.value))) return; r.value = n.value; values[c.key] = Number(n.value); request(); };
-      n.onchange = () => { if (n.value === "") n.value = values[c.key]; syncAll = true; request(0); };
-      r.onchange = () => { syncAll = true; request(0); };
-    } else if (c.type === "select") {
-      row.className = "row sel";
-      row.innerHTML = `<span>${c.label}</span><select aria-label="${c.label}">${c.options.map((o) => `<option value="${o.value}">${o.label} мм</option>`).join("")}</select>`;
-      const s = row.querySelector("select"); s.value = values[c.key];
-      s.onchange = () => { values[c.key] = s.value; syncAll = true; request(0); };
-    } else {
-      row.className = "row txt";
-      const dl = `dl-${c.key}`;
-      row.innerHTML = `<span>${c.label}</span><input type="text" list="${dl}" maxlength="40" aria-label="${c.label}"><datalist id="${dl}">${(c.suggestions || []).map((s) => `<option value="${s}">`).join("")}</datalist>`;
-      const t = row.querySelector("input"); t.value = values[c.key];
-      t.oninput = () => { values[c.key] = t.value; request(); };
-      t.onchange = () => { if (!t.value.trim()) { t.value = c.def; values[c.key] = c.def; request(0); } };
-    }
-    box.append(row);
+  const main = cur.controls.filter((c) => !c.extra), extra = cur.controls.filter((c) => c.extra);
+  for (const c of main) box.append(controlRow(c));
+  if (extra.length) {
+    const det = document.createElement("details"); det.className = "extra"; det.open = true;
+    det.innerHTML = "<summary>Дополнительно</summary>";
+    for (const c of extra) det.append(controlRow(c));
+    box.append(det);
   }
+  applyDepends();
 }
 /** показать в полях значения, которые вернул воркер после проверки (ограничения диапазонов, согласование параметров) */
 function syncControls(p, force) {
-  for (const row of $("controls").children) {
-    const k = row.dataset.key, el = row.querySelector("select, input[type=number], input[type=text]"), r = row.querySelector("input[type=range]");
+  for (const row of $("controls").querySelectorAll("[data-key]")) {
+    const k = row.dataset.key, box = row.querySelector("input[type=checkbox]");
+    if (box) {
+      if (!force && document.activeElement === box) continue;
+      values[k] = !!p[k]; box.checked = !!p[k];
+      continue;
+    }
+    const el = row.querySelector("select, input[type=number], input[type=text]"), r = row.querySelector("input[type=range]");
+    if (!el) continue;
     if (!force && document.activeElement === el) continue;
     if (String(p[k]) === String(values[k]) && !force) continue;
     values[k] = p[k]; el.value = p[k]; if (r) r.value = p[k];
   }
+  applyDepends();
 }
 $("reset").onclick = () => { values = { ...cur.defaults }; buildControls(); request(0); };
 
