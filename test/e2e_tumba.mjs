@@ -23,11 +23,11 @@ try {
   const warns = () => page.$$eval("#warnings li", (l) => l.map((x) => x.textContent));
   const set = async (key, v) => { await page.fill(`#controls [data-key="${key}"] input[type=number]`, String(v)); await page.dispatchEvent(`#controls [data-key="${key}"] input[type=number]`, "change"); };
   await wait((l) => l.article === "TUMBA_KUH");
-  // плитка: «Тумба кух.», в категории «Другое» (после «Вешалок»), без артикула
+  // плитка: «Тумба кух.», в категории «Другое» (после «Под раковины»), без артикула
   const tile = await page.$eval('#tiles .tile[data-article="TUMBA_KUH"]', (t) => ({ txt: t.innerText, cat: t.closest("section.cat").dataset.category, sel: t.getAttribute("aria-checked") }));
   const cats = await page.$$eval("#tiles section.cat h2", (h) => h.map((x) => x.textContent));
   ok(tile.txt.split("\n")[0] === "Тумба кух." && tile.cat === "Другое" && tile.sel === "true" && !/TUMBA|H\d{3}|\d{4}/.test(tile.txt), "плитка: «" + tile.txt.replace("\n", " / ") + "», категория «" + tile.cat + "»");
-  ok(same(cats, ["Ножки и опоры", "Подстолья", "Рейлы", "Вешалки", "Другое"]), "категории по порядку: " + cats.join(" / "));
+  ok(same(cats, ["Ножки и опоры", "Подстолья", "Рейлы", "Вешалки", "Под раковины", "Другое"]), "категории по порядку: " + cats.join(" / "));
   const labels = await page.$$eval("#controls .row > span:first-child", (s) => s.map((x) => x.textContent));
   ok(same(labels, ["Длина", "Ширина", "Высота", "Профиль", "Отступ отверстий мин", "Отступ отверстий макс", "Количество отверстий", "Высота отверстий к стене"]), "подписи полей: " + labels.join(", "));
   const opts = await page.$$eval('#controls [data-key="profile"] option', (o) => o.map((x) => x.textContent.replace(" мм", "")));
