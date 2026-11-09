@@ -24,7 +24,7 @@ const prof = (p) => findIn(SQUARES, p.profile);
 const clearOf = (p) => p.H - p.zBot - 2 * prof(p).a;
 
 export const spec = {
-  id: "VA008", type: "Каркас", category: "Под раковины", name: "Каркас под раковину ВА008",
+  id: "VA008", type: "Каркас", category: "Под раковины", name: "Каркас ВА008",
   about: "Каркас под раковину: верхняя и нижняя рамки, боковые поперечины, без полки",
   controls,
   normalize(raw) {
