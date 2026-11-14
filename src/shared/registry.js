@@ -16,10 +16,11 @@ import { spec as H098 } from "./H098/model.js";
 import { spec as YOZH } from "./YOZH/model.js";
 import { spec as TUMBA_KUH } from "./TUMBA_KUH/model.js";
 import { spec as VA008 } from "./VA008/model.js";
+import { spec as KONSOL } from "./KONSOL/model.js";
 import { spec as A0090 } from "./0090/model.js";
 import { spec as A0011 } from "./0011/model.js";
 // порядок: Ножки и опоры → Подстолья → Рейлы → Вешалки → Под раковины → Другое
-export const ARTICLES = [H031, H005, H050, H027_1, H112, H028, H030_2, H043, H038, A0090, A0011, H114, H098, YOZH, V006_2, V004, VA012, VA008, TUMBA_KUH];
+export const ARTICLES = [H031, H005, H050, H027_1, H112, H028, H030_2, H043, H038, A0090, A0011, H114, H098, YOZH, KONSOL, V006_2, V004, VA012, VA008, TUMBA_KUH];
 export const CATEGORIES = [...new Set(ARTICLES.map((s) => s.category))];
 export const BY_ID = Object.fromEntries(ARTICLES.map((s) => [s.id, s]));
 /** serialisable description of all articles for the UI (no functions) */

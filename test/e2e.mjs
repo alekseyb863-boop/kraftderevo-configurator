@@ -28,13 +28,13 @@ try {
   console.log("первая отрисовка через", Date.now() - t0, "мс");
   const tiles = await page.$$eval("#tiles .tile", (t) => t.map((x) => x.dataset.article));
   const EXPECT = ["H031", "H005", "H050", "H027-1", "H112", "H028", "H030-2", "H043", "H038", "0090", "0011", "H114", "H098", "V006-2", "V004"];
-  const ALL = [...EXPECT.slice(0, 13), "YOZH", ...EXPECT.slice(13), "VA012", "VA008", "TUMBA_KUH"];       // Ёж / В012 / ВА008 / Тумба
+  const ALL = [...EXPECT.slice(0, 13), "YOZH", "KONSOL", ...EXPECT.slice(13), "VA012", "VA008", "TUMBA_KUH"];       // Ёж / В012 / ВА008 / Тумба
   ok(JSON.stringify(tiles) === JSON.stringify(ALL), "плитки: 15 артикулов + «Ёж» + В012 + ВА008 + «Тумба кух.» в нужном порядке: " + tiles.join(" "));
 
   // категории: шесть заголовков того же вида, что и прежний «Артикул», друг под другом, у каждой — своя сетка плиток
   const cats = await page.$$eval("#tiles section.cat", (secs) => secs.map((x) => ({ h: x.querySelector("h2").textContent, ids: [...x.querySelectorAll(".tile")].map((t) => t.dataset.article), y: x.getBoundingClientRect().top, h2: [getComputedStyle(x.querySelector("h2")).fontSize, getComputedStyle(x.querySelector("h2")).color, getComputedStyle(x.querySelector("h2")).textTransform].join("|") })));
   ok(JSON.stringify(cats.map((c) => c.h)) === JSON.stringify(["Ножки и опоры", "Подстолья", "Рейлы", "Вешалки", "Под раковины", "Другое"]) && cats.every((c, i) => i === 0 || c.y > cats[i - 1].y), "заголовки категорий друг под другом: " + cats.map((c) => c.h).join(" / "));
-  ok(cats[0].ids.join() === "H031,H005,H050,H027-1,H112,H028,H030-2,H043,H038,0090,0011" && cats[1].ids.join() === "H114,H098,YOZH" && cats[2].ids.join() === "V006-2,V004" && cats[3].ids.join() === "VA012" && cats[4].ids.join() === "VA008" && cats[5].ids.join() === "TUMBA_KUH", "артикулы по категориям: " + cats.map((c) => c.ids.join(" ")).join(" // "));
+  ok(cats[0].ids.join() === "H031,H005,H050,H027-1,H112,H028,H030-2,H043,H038,0090,0011" && cats[1].ids.join() === "H114,H098,YOZH,KONSOL" && cats[2].ids.join() === "V006-2,V004" && cats[3].ids.join() === "VA012" && cats[4].ids.join() === "VA008" && cats[5].ids.join() === "TUMBA_KUH", "артикулы по категориям: " + cats.map((c) => c.ids.join(" ")).join(" // "));
   ok(new Set(cats.map((c) => c.h2)).size === 1 && cats[0].h2.startsWith("12px|rgb(102, 102, 102)|uppercase") && !(await page.evaluate(() => document.body.innerText)).includes("АРТИКУЛ\n"), "стиль заголовков категорий = прежний «Артикул» (12px, #666, капс): " + cats[0].h2);
 
   const lastP = () => page.evaluate(() => JSON.parse(JSON.stringify({ ...window.__configurator.last, svg: undefined })));

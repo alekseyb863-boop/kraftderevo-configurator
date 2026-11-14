@@ -37,7 +37,11 @@ export function projectSolid(solid, azDeg, elDeg) {
   lines = lines.map((pl) => pl.map((p) => [p[0] + shift[0], p[1] + shift[1]]));
   // mirror/orientation check: each extreme model vertex (min/max x, min/max y) must coincide with a visible line end point
   const ends = lines.flatMap((pl) => [pl[0], pl[pl.length - 1]]);
-  const near = (q) => ends.some((e) => Math.hypot(e[0] - q[0], e[1] - q[1]) < 0.05);
+  // curved edges (e.g. cylinders) are sampled polylines: an extreme mesh vertex on a circle lies on the curve, not at its end point
+  const segD = (q, a, b) => { const dx = b[0] - a[0], dy = b[1] - a[1], l2 = dx * dx + dy * dy, t = l2 ? Math.max(0, Math.min(1, ((q[0] - a[0]) * dx + (q[1] - a[1]) * dy) / l2)) : 0; return Math.hypot(a[0] + t * dx - q[0], a[1] + t * dy - q[1]); };
+  const curves = lines.filter((pl) => pl.length > 2);
+  const onCurve = (q) => curves.some((pl) => pl.some((p, i) => i > 0 && segD(q, pl[i - 1], p) < 0.2));
+  const near = (q) => ends.some((e) => Math.hypot(e[0] - q[0], e[1] - q[1]) < 0.05) || onCurve(q);
   const extremeOK = [0, 1].every((c) => [Math.min(...ref.map((p) => p[c])), Math.max(...ref.map((p) => p[c]))]
     .every((v) => ref.filter((p) => Math.abs(p[c] - v) < 1e-6).some(near)));
   const checks = { extentErr: err.map((e) => +e.toFixed(4)), extremeVerticesMatch: extremeOK, lineCount: lines.length };
