@@ -11,7 +11,7 @@
 //     длинные — по 2 с равными промежутками ножка–площадка–площадка–ножка.
 import * as R from "replicad";
 import { box } from "../lib/model.js";
-import { range, profileCtl, findIn, baseNormalize } from "../lib/params.js";
+import { range, profileCtl, colorCtl, findIn, baseNormalize } from "../lib/params.js";
 import { dimAB } from "../render/dimhelpers.js";
 
 /** прямоугольная труба: a — большая сторона (30), b — малая (15) */
@@ -24,6 +24,7 @@ const controls = [
   range("D", "Ширина", 200, 1000, 1, 418),
   range("H", "Высота", 300, 1200, 1, 620),
   profileCtl("30x15", "profile", "Профиль", RECTS),
+  colorCtl("черный"),
 ];
 const prof = (p) => findIn(RECTS, p.profile);
 /** положения площадок: [x0,x1] на длинных сторонах и [y0,y1] на коротких */
@@ -79,6 +80,6 @@ export const spec = {
   },
   textLines: (p) => {
     const { a, b } = prof(p);
-    return ["Консоль", `Профиль ${a}×${b} мм`, `Длина: ${p.L} мм`, `Ширина: ${p.D} мм`, `Высота: ${p.H} мм`, "Площадки для крепления: 6шт", "Регуляторы высоты: 4шт"];
+    return ["Консоль", `Профиль ${a}×${b} мм`, `Цвет: ${p.color}`, `Длина: ${p.L} мм`, `Ширина: ${p.D} мм`, `Высота: ${p.H} мм`, "Площадки для крепления: 6шт", "Регуляторы высоты: 4шт"];
   },
 };
