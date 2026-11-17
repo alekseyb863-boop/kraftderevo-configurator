@@ -70,7 +70,7 @@ export const spec = {
     const c = chevron(p), P2 = makeView(spec.view.az, spec.view.el).P2, O = 80 * k;
     const dir = (th) => { const t = (th * Math.PI) / 180; return [Math.cos(t), Math.sin(t)]; };
     const scr = LEGS.map((th) => P2(...dir(th), 0)[0]);
-    const uL = dir(LEGS[scr.indexOf(Math.min(...scr))]), uR = dir(LEGS[scr.indexOf(Math.max(...scr))]);
+    const uL = dir(LEGS[scr.indexOf(Math.min(...scr))]);
     const at = (u, r, z) => [r * u[0], r * u[1], z];
     const top = circle3(p.D / 2, p.H);
     const out = [
@@ -79,9 +79,8 @@ export const spec = {
       // диаметр — пунктирная окружность через наружные углы верхних концов ножек + выноска (как у Н091)
       { leader: true, curve: top, tip: extremeOn(top, P2, [-0.45, 1]), elbow: [0.1 * p.D * k, 0.14 * p.D * k], text: `Ø${p.D} мм` },
     ];
-    // глубина галки — на самой правой ножке: от наружного угла колена до линии «верх — опора»
-    if (p.g > 0) out.push(dimAB(at(uR, c.R - p.g, c.h), at(uR, c.R, c.h), at(uR, c.R - p.g, c.h), at(uR, c.R, c.h), `${p.g} мм`, 0, 1));
+    // глубина галки на чертеже не показывается (только параметр в форме)
     return out;
   },
-  textLines: (p) => ["Подстолье 0159", `Профиль ${prof(p).label} мм`, `Цвет: ${p.color}`, `Диаметр: Ø${p.D} мм`, `Высота: ${p.H} мм`, `Глубина галки: ${p.g} мм`],
+  textLines: (p) => ["Подстолье 0159", `Профиль ${prof(p).label} мм`, `Цвет: ${p.color}`, `Диаметр: Ø${p.D} мм`, `Высота: ${p.H} мм`],
 };
