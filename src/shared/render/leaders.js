@@ -1,6 +1,6 @@
 // Leader (выноска) for a dashed circle on the drawing: dashed projected circle + slanted line with an arrow head touching it +
 // short horizontal shelf + horizontal label to the right of the shelf.  Same return shape as buildDim (for the overlap check).
-//   d = { leader: true, curve: [3D points of the closed circle], tip: 3D point on the circle, elbow: [dx, dy] screen-mm offset of the
+//   d = { leader: true, curve: [3D points of the closed circle] (may be empty: leader only), tip: 3D point on the circle, elbow: [dx, dy] screen-mm offset of the
 //         elbow from the tip (y up), text }
 import { layoutBox, textPathD } from "./fonts.js";
 import { sub, add, mul, norm } from "./geom.js";
@@ -13,7 +13,7 @@ export const circle3 = (r, z, n = 144) => Array.from({ length: n + 1 }, (_, i) =
 /** point of the circle whose projection is extreme in the screen direction dir ([x, y], y up) */
 export const extremeOn = (curve, P2, dir) => curve.reduce((best, q) => { const s = P2(...q), v = s[0] * dir[0] + s[1] * dir[1]; return !best || v > best[0] ? [v, q] : best; }, null)[1];
 /** screen-mm points that must fit on the page (for the layout): circle + elbow */
-export const leaderPts = (d, P2) => { const t = P2(...d.tip); return [...d.curve.map((q) => P2(...q)), [t[0] + d.elbow[0], t[1] + d.elbow[1]]]; };
+export const leaderPts = (d, P2) => { const t = P2(...d.tip); return [...d.curve.map((q) => P2(...q)), t, [t[0] + d.elbow[0], t[1] + d.elbow[1]]]; };
 
 export function buildLeader(d, ctx) {
   const { P2, toPx, style, occ } = ctx, svg = [], line = [], arrows = [];
