@@ -99,7 +99,7 @@ export function buildDrawing({ solid, view, layout, makeDims, textLines, auto = 
     const geom = proj.lines.map((pl) => pl.map(toPx)), extraPx = extra.map(([a, b]) => [toPx(proj.P2(...a)), toPx(proj.P2(...b))]), marksPx = marks.map((pl) => pl.map((q) => toPx(proj.P2(...q)))), geomAll = [...geom, ...extraPx, ...marksPx];
     const header = layoutTextBlock(textLines, style);
     const shifts = dims.map((d) => d.shift || 0);
-    const build = () => dims.map((d, i) => d.leader ? buildLeader(d, { P2: proj.P2, toPx, style }) : buildDim({ ...d, shift: shifts[i] }, { P2: proj.P2, toPx, scale: L.scale, style, occ: proj.occ }));
+    const build = () => dims.map((d, i) => d.leader ? buildLeader(d, { P2: proj.P2, toPx, style, occ: proj.occ }) : buildDim({ ...d, shift: shifts[i] }, { P2: proj.P2, toPx, scale: L.scale, style, occ: proj.occ }));
     const run = () => { const built = build(); return { built, check: overlapCheck({ geom: geomAll, dims: built, header, W, H, margin }) }; };
     let cur = run();
     // part of the score that moving the labels can never change (header vs geometry / dimension lines / header, header outside the page)

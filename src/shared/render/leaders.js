@@ -5,6 +5,7 @@
 import { layoutBox, textPathD } from "./fonts.js";
 import { sub, add, mul, norm } from "./geom.js";
 import { pt } from "./dimensions.js";
+import { visibleIntervals } from "./occlude.js";
 const f = (v) => +v.toFixed(2);
 
 /** 3D circle (plane z = const) as a closed polyline */
@@ -15,11 +16,23 @@ export const extremeOn = (curve, P2, dir) => curve.reduce((best, q) => { const s
 export const leaderPts = (d, P2) => { const t = P2(...d.tip); return [...d.curve.map((q) => P2(...q)), [t[0] + d.elbow[0], t[1] + d.elbow[1]]]; };
 
 export function buildLeader(d, ctx) {
-  const { P2, toPx, style } = ctx, svg = [], line = [], arrows = [];
+  const { P2, toPx, style, occ } = ctx, svg = [], line = [], arrows = [];
   const cpx = d.curve.map((q) => toPx(P2(...q)));
   for (let i = 0; i < cpx.length - 1; i++) line.push([cpx[i], cpx[i + 1]]);
   const dash = `${f(pt(3))} ${f(pt(2.2))}`;
-  svg.push(`<polyline points="${cpx.map((p) => f(p[0]) + "," + f(p[1])).join(" ")}" fill="none" stroke-dasharray="${dash}"/>`);
+  // скрытые участки окружности (за изделием по глубине) не рисуются; видимые куски соседних отрезков сшиваются в одну ломаную
+  const chains = []; let cur = null;
+  const lerp = (p, q, t) => [p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t];
+  for (let i = 0; i < d.curve.length - 1; i++) {
+    const a3 = d.curve[i], b3 = d.curve[i + 1], iv = occ ? visibleIntervals(occ, P2(...a3), P2(...b3), occ.depth(a3), occ.depth(b3), 0, 1) : [[0, 1]];
+    for (const [ta, tb] of iv) {
+      const A = lerp(cpx[i], cpx[i + 1], ta), B = lerp(cpx[i], cpx[i + 1], tb);
+      if (cur && ta < 1e-9) cur.push(B); else { cur = [A, B]; chains.push(cur); }
+      if (tb < 1 - 1e-9) cur = null;
+    }
+    if (!iv.length) cur = null;
+  }
+  for (const ch of chains) svg.push(`<polyline points="${ch.map((p) => f(p[0]) + "," + f(p[1])).join(" ")}" fill="none" stroke-dasharray="${dash}"/>`);
   const t2 = P2(...d.tip), T = toPx(t2), E = toPx([t2[0] + d.elbow[0], t2[1] + d.elbow[1]]), shelf = pt(14);
   const S = add(E, [shelf, 0]);
   const v = sub(T, E), L = norm(v), u = mul(v, 1 / L), nv = [-u[1], u[0]], hl = 0.4 * pt(14), hw = 0.2 * pt(14);
