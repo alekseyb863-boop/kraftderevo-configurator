@@ -4,6 +4,7 @@ import { projectSolid } from "./projection.js";
 import { buildDim, pt } from "./dimensions.js";
 import { layoutTextBlock, textSvg } from "./text.js";
 import { overlapCheck } from "./overlap.js";
+import { buildLeader, leaderPts } from "./leaders.js";
 export { dim, dimAB } from "./dimhelpers.js";
 
 const ext = (pts) => [Math.min(...pts.map((p) => p[0])), Math.min(...pts.map((p) => p[1])), Math.max(...pts.map((p) => p[0])), Math.max(...pts.map((p) => p[1]))];
@@ -93,12 +94,12 @@ export function buildDrawing({ solid, view, layout, makeDims, textLines, auto = 
   const proj = projectSolid(solid, view.az, view.el);
   const attempt = (layoutName, k, shrink, search) => {
     const dims = makeDims(k);
-    const dimPts = [...dims.flatMap((d) => [proj.P2(...d.a), proj.P2(...d.b)]), ...extra.flatMap(([a, b]) => [proj.P2(...a), proj.P2(...b)]), ...marks.flat().map((q) => proj.P2(...q))];
+    const dimPts = [...dims.flatMap((d) => d.leader ? leaderPts(d, proj.P2) : [proj.P2(...d.a), proj.P2(...d.b)]), ...extra.flatMap(([a, b]) => [proj.P2(...a), proj.P2(...b)]), ...marks.flat().map((q) => proj.P2(...q))];
     const L = LAYOUTS[layoutName](proj.lines, dimPts, textLines.length, { shrink }), { W, H, toPx, style } = L;
     const geom = proj.lines.map((pl) => pl.map(toPx)), extraPx = extra.map(([a, b]) => [toPx(proj.P2(...a)), toPx(proj.P2(...b))]), marksPx = marks.map((pl) => pl.map((q) => toPx(proj.P2(...q)))), geomAll = [...geom, ...extraPx, ...marksPx];
     const header = layoutTextBlock(textLines, style);
     const shifts = dims.map((d) => d.shift || 0);
-    const build = () => dims.map((d, i) => buildDim({ ...d, shift: shifts[i] }, { P2: proj.P2, toPx, scale: L.scale, style, occ: proj.occ }));
+    const build = () => dims.map((d, i) => d.leader ? buildLeader(d, { P2: proj.P2, toPx, style }) : buildDim({ ...d, shift: shifts[i] }, { P2: proj.P2, toPx, scale: L.scale, style, occ: proj.occ }));
     const run = () => { const built = build(); return { built, check: overlapCheck({ geom: geomAll, dims: built, header, W, H, margin }) }; };
     let cur = run();
     // part of the score that moving the labels can never change (header vs geometry / dimension lines / header, header outside the page)
@@ -109,6 +110,7 @@ export function buildDrawing({ solid, view, layout, makeDims, textLines, auto = 
       for (let pass = 0; pass < 3 && !cur.check.ok; pass++) {
         let improved = false;
         dims.forEach((d, i) => {
+          if (d.leader) return;                                            // выноски не сдвигаются
           const base = d.shift || 0, a = toPx(proj.P2(...d.a)), b = toPx(proj.P2(...d.b)), Ln = Math.hypot(b[0] - a[0], b[1] - a[1]);
           const range = Ln / 2 + 120, cands = [shifts[i]];
           for (let s = 0; s <= range * 2; s += 12) { cands.push(base + s, base - s); }

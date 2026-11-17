@@ -10,6 +10,8 @@
 import { frame, free } from "../lib/model.js";
 import { PROFILES, range, profileCtl, colorCtl, findIn, baseNormalize, frameFeasible, relax } from "../lib/params.js";
 import { dimAB } from "../render/dimhelpers.js";
+import { makeView } from "../render/projection.js";
+import { circle3, extremeOn } from "../render/leaders.js";
 
 const ARMS = [228, 108, -12];                             // направления лучей, град (между лучами всегда 120°); ракурс как на референсе, 228° — левый луч
 const controls = [
@@ -59,7 +61,11 @@ export const spec = {
     const { a } = prof(p), Rt = rad(p.Dt, a), Rb = rad(p.Db, a), O = 80 * k, R = Math.max(Rt, Rb) + O;
     const t = (ARMS[0] * Math.PI) / 180, u = [Math.cos(t), Math.sin(t)], at = (r, z) => [r * u[0], r * u[1], z];
     // высота — слева, по торцам левого луча (как на референсе), размерная линия снаружи по направлению луча
-    return [dimAB(at(Rb, 0), at(Rt, p.H), at(R, 0), at(R, p.H), `${p.H} мм`)];
+    // диаметры — пунктирные окружности (через наружные углы концов лучей) с выносками, как на референсе
+    const P2 = makeView(spec.view.az, spec.view.el).P2, top = circle3(p.Dt / 2, p.H), bot = circle3(p.Db / 2, 0), s = Math.max(p.Dt, p.Db);
+    return [dimAB(at(Rb, 0), at(Rt, p.H), at(R, 0), at(R, p.H), `${p.H} мм`),
+      { leader: true, curve: top, tip: extremeOn(top, P2, [-0.45, 1]), elbow: [0.07 * s * k, 0.12 * s * k], text: `Ø${p.Dt} мм` },
+      { leader: true, curve: bot, tip: extremeOn(bot, P2, [1, 0]), elbow: [0.12 * s * k, 0], text: `Ø${p.Db} мм` }];
   },
   textLines: (p) => ["Подстолье Н091", `Профиль ${prof(p).label} мм`, `Цвет: ${p.color}`,
     `Верхний диаметр: Ø${p.Dt} мм`, `Нижний диаметр: Ø${p.Db} мм`, `Высота: ${p.H} мм`],
