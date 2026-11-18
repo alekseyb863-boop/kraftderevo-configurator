@@ -1,6 +1,6 @@
 // Web Worker: OpenCascade (WASM) + replicad + отрисовка чертежа. UI-поток остаётся свободным.
 // main -> {type:"init", base}                       => worker -> {type:"meta", articles} (сразу) и {type:"ready"} (после загрузки WASM)
-// main -> {id, type:"draw", article, params, showLen} (showLen: строка «Метраж профиля» в текстовом блоке)       => {id, type:"drawn", svg, W, H, check, warnings, params, bbox, solid, adjust, ms}
+// main -> {id, type:"draw", article, params, showLen} (showLen: строка «Метраж профиля» в текстовом блоке; order: номер заказа — крупный заголовок, "" — нет)       => {id, type:"drawn", svg, W, H, check, warnings, params, bbox, solid, adjust, ms}
 // main -> {id, type:"export", format, article, params} => {id, type:"file", buffer, name}   (format: "stl")
 import { setOC } from "replicad";
 import opencascade from "replicad-opencascadejs";
@@ -10,6 +10,7 @@ import { fuseAll, checkSolid, assemble, checkAssembly, free } from "../shared/li
 import { buildDrawing } from "../shared/render/drawing.js";
 import { setFonts } from "../shared/render/fonts.js";
 import { lengthLine } from "../shared/lib/length.js";
+import { withOrder } from "../shared/lib/order.js";
 
 let resolveBase;
 const basePromise = new Promise((r) => (resolveBase = r));
@@ -78,7 +79,7 @@ self.onmessage = async ({ data }) => {
       const t0 = performance.now(), { S, p, warnings, solid, pieces } = build(data.article, data.params);
       try {
         const exp = S.expectBBox(p), chk = pieces ? checkAssembly(S.id, pieces, exp) : checkSolid(S.id, solid, exp);
-        const d = buildDrawing({ solid, view: S.view, layout: S.layout, makeDims: (k) => S.dims(p, k), textLines: data.showLen && S.profileLength ? [...S.textLines(p), lengthLine(S.profileLength(p))] : S.textLines(p), extra: S.extraLines ? S.extraLines(p) : [], marks: S.marks ? S.marks(p) : [], soft: !!S.softOverlap });
+        const d = buildDrawing({ solid, view: S.view, layout: S.layout, makeDims: (k) => S.dims(p, k), textLines: withOrder(data.showLen && S.profileLength ? [...S.textLines(p), lengthLine(S.profileLength(p))] : S.textLines(p), data.order), extra: S.extraLines ? S.extraLines(p) : [], marks: S.marks ? S.marks(p) : [], soft: !!S.softOverlap });
         self.postMessage({ id, type: "drawn", article: S.id, svg: d.svg, W: d.W, H: d.H, check: d.check, adjust: d.adjust, params: p, warnings,
           bbox: chk.bbox, expectBBox: exp.map((v) => +v.toFixed(3)), solid: { solids: chk.solids, valid: chk.occValid, watertight: chk.watertight, bboxOK: chk.bboxOK, ok: chk.ok },
           name: sizeName(S, p), ms: Math.round(performance.now() - t0) });

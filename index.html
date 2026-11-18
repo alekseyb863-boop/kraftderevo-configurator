@@ -23,7 +23,13 @@
         <button type="button" id="dl-stl">Скачать STL</button>
         <button type="button" id="reset" class="secondary">Сбросить</button>
       </div>
-      <label class="showlen"><input type="checkbox" id="show-len"> Показать метраж</label>
+      <div class="opts">
+        <label class="showlen"><input type="checkbox" id="show-len"> Показать метраж</label>
+        <div class="order">
+          <label class="showlen"><input type="checkbox" id="show-order"> № заказа</label>
+          <input type="text" id="order-no" maxlength="40" placeholder="номер заказа" aria-label="Номер заказа" disabled>
+        </div>
+      </div>
       <ul id="warnings" class="warnings" aria-live="polite"></ul>
       <p id="info" class="info err" role="alert" hidden></p>
       <div id="checks" hidden aria-hidden="true"></div>
