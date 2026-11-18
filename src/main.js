@@ -140,6 +140,7 @@ function syncControls(p, force) {
   }
   applyDepends();
 }
+$("show-len").onchange = () => request(0);                                  // «Показать метраж»: перерисовать с/без строки метража
 $("reset").onclick = () => { values = { ...cur.defaults }; buildControls(); request(0); };
 
 // ---------- перерисовка: debounce + «последний запрос побеждает» ----------
@@ -150,7 +151,7 @@ async function pump() {
   const art = cur.id, snapshot = { ...values }, force = syncAll; syncAll = false;
   inflight = art; dirty = false; setStatus("считаю…", "busy");
   try {
-    const r = await call({ type: "draw", article: art, params: snapshot });
+    const r = await call({ type: "draw", article: art, params: snapshot, showLen: $("show-len").checked });
     if (!dirty && cur.id === art) show(r, force);
   } catch (e) { setStatus("ошибка: " + e.message, "err"); console.error(e); }
   finally { inflight = null; if (dirty) request(0); }

@@ -17,6 +17,8 @@ export const spec = {
     for (const sx of [-1, 1]) { const [xa, xb] = s(sx * hx, sx * (hx - P)); out.push(box(xa, xb, -hy + P, hy - P, H - P, H)); }
     return out;
   },
+  /** метраж: 4 ножки + верхняя рамка */
+  profileLength(p) { const P = findIn(SQUARES, p.profile).a; return 4 * p.H + 2 * (p.L - 2 * P) + 2 * (p.D - 2 * P); },
   expectBBox: (p) => [p.L, p.D, p.H],
   view: { az: 30, el: 22 }, layout: "table",
   dims(p, k = 1) {

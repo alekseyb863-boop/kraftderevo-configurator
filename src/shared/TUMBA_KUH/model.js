@@ -17,6 +17,7 @@ import { range, select, findIn, baseNormalize } from "../lib/params.js";
 import { dimAB } from "../render/dimhelpers.js";
 import { holePositions } from "../lib/holes.js";
 import { makeView } from "../render/projection.js";
+import { frameMembers, stripLen, dist3, sum } from "../lib/length.js";
 export { holePositions };
 
 const HOLE_D = 5, MIN_STEP = 100, MIN_POST_HOLE = 8;
@@ -107,6 +108,8 @@ export const spec = {
   },
   derive,
   parts,
+  /** метраж: 2 верхних длинных + 2 боковых + 2 стойки + нижний + 2 раскоса (по оси) */
+  profileLength(p) { const { a, b } = prof(p), { W: L, D, H } = p; return 2 * L + 2 * (D - 2 * a) + 2 * (H - b) + (L - 2 * a) + 2 * stripLen(bracePolygon(D, H, a, b), b); },
   expectBBox: (p) => [p.W, p.D, p.H],
   view: VIEW, layout: "wide", auto: true,
   // смягчённая проверка наложений (только для этой фигуры): на предельных размерах допускается касание подписей размеров друг с другом / с чужими размерными линиями

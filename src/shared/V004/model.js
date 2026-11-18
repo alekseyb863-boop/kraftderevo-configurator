@@ -27,6 +27,8 @@ export const spec = {
     out.push(box(a, W - a, yc0, yc1, H - a, H));                                                // штанга
     return out;
   },
+  /** метраж: 4 стойки + нижнее кольцо + 2 верхних боковых + штанга */
+  profileLength(p) { const a = prof(p).a, { H, W, D } = p; return 4 * H + 2 * (W - 2 * a) + 4 * (D - 2 * a) + (W - 2 * a); },
   expectBBox: (p) => [p.W, p.D, p.H],
   view: { az: 35, el: 16 }, layout: "forms", auto: true,
   dims(p, k = 1) {

@@ -27,6 +27,7 @@
 import { frame, box, innerPolygon, bisect, free } from "../lib/model.js";
 import { PROFILES, range, profileCtl, colorCtl, findIn, baseNormalize } from "../lib/params.js";
 import { dimAB } from "../render/dimhelpers.js";
+import { frameMembers, stripLen, dist3, sum } from "../lib/length.js";
 
 const D2R = Math.PI / 180, MIN_EDGE = 12, MAX_ALPHA = 75;   // α ≤ 75° (излом ≤ 150°, внутренний угол «V» ≥ 30°)
 const controls = [range("WT", "Ширина верха", 250, 1200, 1, 602), range("WB", "Ширина низа", 100, 1200, 1, 356), range("D", "Глубина", 60, 800, 1, 252),
@@ -85,6 +86,12 @@ export const spec = {
     const half = box(0, 5000, -5000, 5000, -10, H + 10), cut = rot.intersect(half); free(rot, half);   // mitre = plane x = 0
     const right = cut.translate([0, p.D, 0]); free(cut);
     return [right, right.clone().mirror("YZ", [0, 0, 0])];
+  },
+  /** метраж: два крыла (трапеция Н050 без стороны на оси), ось срезана плоскостью сгиба на середине глубины профиля */
+  profileLength(p) {
+    const pr = prof(p), g = dv(p); if (g.error) return 0;
+    const u0 = (pr.a / 2) * Math.tan(g.alpha), H = p.H;
+    return 2 * sum(frameMembers([[u0, 0], [g.lb, 0], [g.lt, H], [u0, H]], [pr.b, pr.b, pr.b, pr.b], [3]));
   },
   expectBBox: (p) => [p.WT, p.D, p.H],
   view: { az: -35, el: 16 }, layout: "forms", shaded: true,

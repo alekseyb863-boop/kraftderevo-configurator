@@ -3,6 +3,7 @@
 import { frame, box } from "../lib/model.js";
 import { PROFILES, range, profileCtl, colorCtl, findIn, baseNormalize, frameFeasible, relax } from "../lib/params.js";
 import { dimAB } from "../render/dimhelpers.js";
+import { frameMembers, stripLen, dist3, sum } from "../lib/length.js";
 
 const controls = [range("W", "Ширина", 250, 1000, 10, 600), range("H", "Высота", 300, 1100, 10, 710), range("D", "Глубина", 100, 700, 10, 230),
   profileCtl("40x20"), colorCtl("лофт")];
@@ -18,6 +19,11 @@ export const spec = {
     const { a: DEP, b: TIN } = findIn(PROFILES, p.profile), { W, H, D } = p, cx0 = W / 2 - DEP / 2, cx1 = W / 2 + DEP / 2;
     return [frame([[0, 0], [W, 0], [W, H], [0, H]], [TIN, TIN, TIN, TIN], 0, DEP),
       box(cx0, cx1, DEP, D, 0, TIN), box(cx0, cx1, DEP, D, H - TIN, H), box(cx0, cx1, D - TIN, D, TIN, H - TIN)];
+  },
+  /** метраж: рама W×H + 2 горизонтальных и 1 вертикальный элемент боковой рамы */
+  profileLength(p) {
+    const { a: DEP, b: TIN } = findIn(PROFILES, p.profile), { W, H, D } = p;
+    return sum(frameMembers([[0, 0], [W, 0], [W, H], [0, H]], [TIN, TIN, TIN, TIN])) + 2 * (D - DEP) + (H - 2 * TIN);
   },
   expectBBox: (p) => [p.W, p.D, p.H],
   view: { az: 35, el: 18 }, layout: "forms",

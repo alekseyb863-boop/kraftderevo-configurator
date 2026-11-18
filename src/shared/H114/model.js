@@ -25,6 +25,7 @@ import { PROFILES_BASE, range, profileCtl, colorCtl, findIn, baseNormalize } fro
 import { box, free } from "../lib/model.js";
 import { legFrame } from "../H031/model.js";
 import { dim } from "../render/dimhelpers.js";
+import { frameMembers, stripLen, dist3, sum } from "../lib/length.js";
 
 export const GAP_MIN = 20;
 const prof = (p) => findIn(PROFILES_BASE, p.profile);
@@ -54,6 +55,8 @@ export const spec = {
       box(a, L - a, (W - a) / 2, (W + a) / 2, 0, b)];                                                // bottom beam, centred
     return parts.map((s) => s.translate([-L / 2, -W / 2, 0]));
   },
+  /** метраж: 2 рамы-ножки + 2 верхние балки + нижняя балка */
+  profileLength(p) { const { a, b } = prof(p), { L, W, H } = p; return 2 * sum(frameMembers([[0, 0], [W, 0], [W, H], [0, H]], [b, b, b, b])) + 3 * (L - 2 * a); },
   expectBBox: (p) => [p.L, p.W, p.H],
   view: { az: 30, el: 22 }, layout: "table", shaded: true, auto: true,
   dims(p, k = 1) {

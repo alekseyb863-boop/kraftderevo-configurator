@@ -45,6 +45,8 @@ export const spec = {
     }
     return out;
   },
+  /** метраж: 2 кольца по средней линии π·(D − a) + 4 ножки (H − 2a) */
+  profileLength(p) { const a = prof(p).a; return 2 * Math.PI * (p.D - a) + 4 * (p.H - 2 * a); },
   expectBBox: (p) => [p.D, p.D, p.H],
   view: { az: 35, el: 28 }, layout: "forms", auto: true,
   dims(p, k = 1) {

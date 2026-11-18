@@ -19,6 +19,8 @@ export const spec = {
     const bar = (mirror) => { let pts = [[0, H], [WH, H], [W, 0], [W - WH, 0]]; if (mirror) pts = pts.map(([x, z]) => [W - x, z]); return prism(pts, 0, T); };
     return [bar(false), bar(true)];
   },
+  /** метраж: два прута по оси */
+  profileLength(p) { const { WH } = geo(p); return 2 * Math.hypot(p.W - WH, p.H); },
   expectBBox: (p) => [p.W, geo(p).T, p.H],
   view: { az: 48, el: 18 }, layout: "leg",
   dims(p, k = 1) { const O = 110 * k; return [dim([0, 0, 0], [p.W, 0, 0], `${p.W} мм`, [0, -O, 0]), dim([0, 0, 0], [0, 0, p.H], `${p.H} мм`, [-O, 0, 0])]; },

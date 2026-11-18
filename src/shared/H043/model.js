@@ -3,6 +3,7 @@
 import { frame, box } from "../lib/model.js";
 import { PROFILES, range, profileCtl, colorCtl, findIn, baseNormalize, frameFeasible, relax } from "../lib/params.js";
 import { dimAB } from "../render/dimhelpers.js";
+import { frameMembers, stripLen, dist3, sum } from "../lib/length.js";
 
 const controls = [range("WB", "Ширина низа", 200, 1000, 5, 500), range("WT", "Ширина верха", 250, 1200, 5, 555), range("H", "Высота", 300, 1100, 10, 710),
   profileCtl("50x25"), range("PS", "Пластина, сторона", 60, 150, 5, 80), range("PT", "Пластина, толщина", 3, 10, 1, 4), colorCtl("черный")];
@@ -25,6 +26,8 @@ export const spec = {
     return [frame(outer(p), [geo(p).TIN, geo(p).TIN, 0, geo(p).TIN], PS / 2 - DEP / 2, PS / 2 + DEP / 2, [2]),
       ...[wh / 2, WT - wh / 2].map((cx) => box(cx - PS / 2, cx + PS / 2, 0, PS, HL, H))];
   },
+  /** метраж: U-рама (пластины не считаются) */
+  profileLength(p) { const t = geo(p).TIN; return sum(frameMembers(outer(p), [t, t, 0, t], [2])); },
   expectBBox: (p) => [p.WT - geo(p).wh + p.PS, p.PS, p.H],
   view: { az: 50, el: 16 }, layout: "forms",
   dims(p, k = 1) {

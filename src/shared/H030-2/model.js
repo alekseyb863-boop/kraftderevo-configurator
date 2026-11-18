@@ -15,6 +15,8 @@ export const spec = {
     const pr = findIn(PROFILES, p.profile), { H, PS, PT } = p, ox = (PS - pr.b) / 2, oy = (PS - pr.a) / 2;
     return [box(ox, ox + pr.b, oy, oy + pr.a, 0, H - PT), box(0, PS, 0, PS, H - PT, H)];
   },
+  /** метраж: стойка (пластина не считается) */
+  profileLength(p) { return p.H - p.PT; },
   expectBBox: (p) => [p.PS, p.PS, p.H],
   view: { az: 40, el: 16 }, layout: "forms",
   dims: (p, k = 1) => [dimAB([0, 0, 0], [0, 0, p.H], [-90 * k, 0, 0], [-90 * k, 0, p.H], `${p.H} мм`)],

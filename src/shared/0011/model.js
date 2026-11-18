@@ -29,6 +29,11 @@ export const spec = {
     const d2 = prism([[W, H - B], [W - WH2, H - B], [0, B], [WH2, B]], T - B, T);      // задняя полоса y T-B..T
     return [top, bot, d1, d2];
   },
+  /** метраж (полоса): Z-полоса (верх + диагональ + низ, по оси) + вторая диагональ */
+  profileLength(p) {
+    const { B, WH, WH2 } = geo(p), { W, H } = p, xd = WH / 2 + (B / 2 / H) * (W - WH);
+    return 2 * (W - xd) + Math.hypot(W - WH, H) * (H - B) / H + Math.hypot(W - WH2, H - 2 * B);
+  },
   expectBBox: (p) => [p.W, geo(p).T, p.H],
   view: { az: 40, el: 20 }, layout: "leg",
   dims(p, k = 1) { const O = 110 * k; return [dim([0, 0, 0], [p.W, 0, 0], `${p.W} мм`, [0, -O, 0]), dim([0, 0, 0], [0, 0, p.H], `${p.H} мм`, [-O, 0, 0])]; },

@@ -3,6 +3,7 @@
 import { frame, box } from "../lib/model.js";
 import { PROFILES, STRIPS, range, profileCtl, stripCtl, colorCtl, findIn, baseNormalize, frameFeasible, relax } from "../lib/params.js";
 import { dimAB } from "../render/dimhelpers.js";
+import { frameMembers, stripLen, dist3, sum } from "../lib/length.js";
 
 const controls = [range("WB", "Ширина низа", 300, 1200, 10, 600), range("WT", "Ширина верха", 200, 1200, 10, 500), range("H", "Высота", 300, 1100, 10, 710),
   profileCtl("50x25"), stripCtl("80x8", "strip", "Полоса (верх)"), colorCtl("черный")];
@@ -26,6 +27,8 @@ export const spec = {
     const { TIN, DEP, PL_D, PL_T, PL_L, HL } = geo(p), { WB, H } = p;
     return [frame(outer(p), [TIN, TIN, 0, TIN], (PL_D - DEP) / 2, (PL_D + DEP) / 2, [2]), box((WB - PL_L) / 2, (WB + PL_L) / 2, 0, PL_D, HL, H)];
   },
+  /** метраж: трапеция без верхней стороны (верхняя полоса-пластина не считается) */
+  profileLength(p) { const t = geo(p).TIN; return sum(frameMembers(outer(p), [t, t, 0, t], [2])); },
   expectBBox: (p) => [geo(p).PL_L, geo(p).PL_D, p.H],
   view: { az: 50, el: 16 }, layout: "forms",
   dims(p, k = 1) {

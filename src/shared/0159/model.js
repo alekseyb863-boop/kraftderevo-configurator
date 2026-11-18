@@ -13,6 +13,7 @@ import { range, profileCtl, colorCtl, findIn, baseNormalize } from "../lib/param
 import { dimAB } from "../render/dimhelpers.js";
 import { makeView } from "../render/projection.js";
 import { circle3, extremeOn } from "../render/leaders.js";
+import { frameMembers, stripLen, dist3, sum } from "../lib/length.js";
 
 const SQ = [15, 20, 25, 30, 40].map((a) => ({ id: `${a}x${a}`, a, b: a, label: `${a}×${a}` }));
 const LEGS = [10, 100, 190, 280];                         // ракурс: все 4 ножки видны (как у 0118)
@@ -59,6 +60,11 @@ export const spec = {
     for (const z0 of [0, p.H - a])
       for (const th of [LEGS[0], LEGS[1]]) out.push(box(-xe, xe, -a / 2, a / 2, z0, z0 + a).rotate(th, [0, 0, 0], [0, 0, 1]));
     return out;
+  },
+  /** метраж: 4 галки (по оси, обе части) + 4 балки крестов */
+  profileLength(p) {
+    const c = chevron(p), xe = (c.Fi[0] + (c.R - (p.g * c.a) / c.h)) / 2;
+    return 4 * stripLen([c.F, c.K, c.T, c.Ti, c.Ki, c.Fi], c.a) + 4 * 2 * xe;
   },
   expectBBox: (p) => {
     const { a, R } = chevron(p), xs = [], ys = [];

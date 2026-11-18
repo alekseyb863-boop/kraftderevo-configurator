@@ -3,6 +3,7 @@
 import { frame, box } from "../lib/model.js";
 import { PROFILES, range, profileCtl, colorCtl, checkCtl, intCtl, findIn, baseNormalize, frameFeasible, relax } from "../lib/params.js";
 import { dimAB } from "../render/dimhelpers.js";
+import { frameMembers, stripLen, dist3, sum } from "../lib/length.js";
 
 const PLATE_T = 4;
 const HOLE_R = 2.5;
@@ -71,6 +72,8 @@ export const spec = {
     }
     return out;
   },
+  /** метраж: трапеция (площадка не считается) */
+  profileLength(p) { const b = prof(p).b; return sum(frameMembers(outer(p), [b, b, b, b])); },
   expectBBox: (p) => [p.WT, p.plate ? prof(p).a + p.PW : prof(p).a, p.H],
   view: { az: 50, el: 16 }, layout: "forms",
   marks(p) {

@@ -3,6 +3,7 @@
 import { frame, box } from "../lib/model.js";
 import { PROFILES, range, profileCtl, colorCtl, checkCtl, intCtl, findIn, baseNormalize } from "../lib/params.js";
 import { dimAB } from "../render/dimhelpers.js";
+import { frameMembers, stripLen, dist3, sum } from "../lib/length.js";
 
 /** the leg itself (also used by Н114): rectangular frame W×H of a profile pr (pr.b in the plane, pr.a deep), plane XZ, depth +Y */
 export const legFrame = (W, H, pr) => frame([[0, 0], [W, 0], [W, H], [0, H]], [pr.b, pr.b, pr.b, pr.b], 0, pr.a);
@@ -84,6 +85,8 @@ export const spec = {
     }
     return out;
   },
+  /** метраж: прямоугольная рама (площадка не считается) */
+  profileLength(p) { const b = prof(p).b; return sum(frameMembers([[0, 0], [p.W, 0], [p.W, p.H], [0, p.H]], [b, b, b, b])); },
   expectBBox: (p) => {
     const pr = prof(p);
     return [p.W, p.plate ? pr.a + p.PW : pr.a, p.H];

@@ -88,6 +88,8 @@ export const spec = {
   },
   derive: (p) => dv(p),
   parts,
+  /** метраж: 4 галочки × 2 бруска по оси (торец → середина вершины) */
+  profileLength(p) { const g = dv(p); return g.error ? 0 : 8 * Math.hypot(g.B, p.H / 2); },
   expectBBox: (p) => [p.W, p.D, p.H],
   view: { az: 30, el: 20 }, layout: "forms",
   // тонкий контур коробки (12 рёбер) — отдельным тонким слоем под размерами

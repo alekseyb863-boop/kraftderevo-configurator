@@ -29,6 +29,8 @@ details.extra .row.int input { grid-column: auto; width: 72px; justify-self: end
 input[type=range] { width: 100%; margin: 0; }
 input[type=text], input[type=number], select { font: inherit; padding: 4px 6px; border: 1px solid #bbb; border-radius: 5px; width: 100%; background: #fff; }
 .buttons { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.showlen { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 14px; cursor: pointer; user-select: none; }
+.showlen input { width: 16px; height: 16px; margin: 0; }
 button { font: inherit; padding: 7px 12px; border: 0; border-radius: 6px; background: #1d6fd1; color: #fff; cursor: pointer; }
 button.secondary { background: #888; } button:disabled { opacity: .5; cursor: wait; }
 button.tile { padding: 6px 9px; background: #fafafa; color: #222; border: 1px solid #ccc; }

@@ -2,12 +2,15 @@
 import { frame } from "../lib/model.js";
 import { STRIPS, range, stripCtl, colorCtl, findIn, baseNormalize } from "../lib/params.js";
 import { dimAB } from "../render/dimhelpers.js";
+import { frameMembers, stripLen, dist3, sum } from "../lib/length.js";
 
 const controls = [range("W", "Ширина", 150, 1200, 10, 600), range("H", "Высота", 150, 900, 10, 400), stripCtl("60x6", "strip", "Полоса"), colorCtl("черный")];
 export const spec = {
   id: "H038", type: "Ножка", category: "Ножки и опоры", name: "Ножка Н038", about: "Журнальные ножки: прямоугольник, согнутый из полосы", controls,
   normalize(raw) { const { p, warnings } = baseNormalize(controls, raw); return { p, warnings }; },
   parts(p) { const st = findIn(STRIPS, p.strip), { W, H } = p; return [frame([[0, 0], [W, 0], [W, H], [0, H]], [st.b, st.b, st.b, st.b], 0, st.a)]; },
+  /** метраж (полоса): прямоугольник по оси */
+  profileLength(p) { const b = findIn(STRIPS, p.strip).b; return sum(frameMembers([[0, 0], [p.W, 0], [p.W, p.H], [0, p.H]], [b, b, b, b])); },
   expectBBox: (p) => [p.W, findIn(STRIPS, p.strip).a, p.H],
   view: { az: 50, el: 16 }, layout: "forms",
   dims(p, k = 1) {

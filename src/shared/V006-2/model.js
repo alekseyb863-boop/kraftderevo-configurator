@@ -22,6 +22,8 @@ export const spec = {
     return [box(0, W, 0, a, 0, a), box(0, W, D - a, D, 0, a), box(0, a, a, D - a, 0, a), box(W - a, W,  a, D - a, 0, a),   // основание
       box(0, a, yc0, yc1, a, H), box(W - a, W, yc0, yc1, a, H), box(a, W - a, yc0, yc1, H - a, H)];                        // стойки + перекладина
   },
+  /** метраж: основание + 2 стойки + перекладина */
+  profileLength(p) { const a = prof(p).a, { H, W, D } = p; return 2 * W + 2 * (D - 2 * a) + 2 * (H - a) + (W - 2 * a); },
   expectBBox: (p) => [p.W, p.D, p.H],
   view: { az: 35, el: 16 }, layout: "forms", auto: true,
   dims(p, k = 1) {

@@ -3,6 +3,7 @@
 import { frame } from "../lib/model.js";
 import { PROFILES, range, profileCtl, colorCtl, findIn, baseNormalize, frameFeasible, relax } from "../lib/params.js";
 import { dimAB } from "../render/dimhelpers.js";
+import { frameMembers, stripLen, dist3, sum } from "../lib/length.js";
 
 const controls = [range("WB", "Ширина низа", 300, 1200, 10, 650), range("WT", "Ширина верха", 200, 1200, 10, 550), range("H", "Высота", 300, 1100, 10, 710),
   profileCtl("80x40", "profile", "Профиль"), colorCtl("черный")];
@@ -21,6 +22,8 @@ export const spec = {
     // рёбра: 0 низ (открыт), 1 правая ножка, 2 верх, 3 левая
     return [frame(outer(p), [0, pr.b, pr.b, pr.b], 0, pr.a, [0])];
   },
+  /** метраж: рама без нижней стороны (по оси, стыки «в ус») */
+  profileLength(p) { const b = findIn(PROFILES, p.profile).b; return sum(frameMembers(outer(p), [0, b, b, b], [0])); },
   expectBBox: (p) => [p.WB, findIn(PROFILES, p.profile).a, p.H],
   view: { az: 50, el: 16 }, layout: "forms",
   dims(p, k = 1) {

@@ -65,6 +65,8 @@ export const spec = {
       out.push(R.makeCylinder(FOOT_R, FOOT_H, [cx, cy, 0], [0, 0, 1]));      // регуляторы высоты
     return out;
   },
+  /** метраж: 4 ножки + верхний контур + 2 боковые нижние + задняя нижняя (площадки и регуляторы не считаются) */
+  profileLength(p) { const { a: w, b: t } = prof(p), { L, D, H } = p; return 4 * (H - FOOT_H) + 3 * (L - 2 * w) + 4 * (D - 2 * t); },
   expectBBox: (p) => [p.L, p.D, p.H],
   view: { az: 35, el: 18 }, layout: "forms", auto: true,
   dims(p, k = 1) {

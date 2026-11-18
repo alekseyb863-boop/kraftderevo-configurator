@@ -54,6 +54,8 @@ export const spec = {
     out.push(box(0, a, a, D - a, zCrossTop - a, zCrossTop), box(W - a, W, a, D - a, zCrossTop - a, zCrossTop));
     return out;
   },
+  /** метраж: 4 стойки + верхняя и нижняя рамки + 2 боковые поперечины */
+  profileLength(p) { const a = prof(p).a, { H, W, D } = p; return 4 * H + 4 * (W - 2 * a) + 6 * (D - 2 * a); },
   expectBBox: (p) => [p.W, p.D, p.H],
   view: { az: 35, el: 18 }, layout: "forms", auto: true,
   dims(p, k = 1) {

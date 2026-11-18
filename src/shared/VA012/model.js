@@ -73,6 +73,8 @@ export const spec = {
     }
     return out;
   },
+  /** метраж: нижнее кольцо + 6 стоек (средние стоят на боковых профилях) + 3 перекладины */
+  profileLength(p) { const a = prof(p).a, { H, H2, H1, W, D } = p; return 2 * (W - 2 * a) + 2 * (D - 2 * a) + 2 * H1 + 2 * (H2 - a) + 2 * H + 3 * (W - 2 * a); },
   expectBBox: (p) => [p.W, p.D, p.H],
   view: { az: 35, el: 16 }, layout: "forms", auto: true,
   dims(p, k = 1) {

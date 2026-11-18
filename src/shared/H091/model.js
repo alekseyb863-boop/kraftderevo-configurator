@@ -12,6 +12,7 @@ import { PROFILES, range, profileCtl, colorCtl, findIn, baseNormalize, frameFeas
 import { dimAB } from "../render/dimhelpers.js";
 import { makeView } from "../render/projection.js";
 import { circle3, extremeOn } from "../render/leaders.js";
+import { frameMembers, stripLen, dist3, sum } from "../lib/length.js";
 
 const ARMS = [228, 108, -12];                             // направления лучей, град (между лучами всегда 120°); ракурс как на референсе, 228° — левый луч
 const controls = [
@@ -55,6 +56,8 @@ export const spec = {
     free(one);
     return out;
   },
+  /** метраж: 3 рамы (нижний луч + ножка + верхний луч) по оси */
+  profileLength(p) { const b = prof(p).b; return 3 * sum(frameMembers(outline(p), [b, b, b, 0], [3])); },
   expectBBox: (p) => { const e = extent(p); return [e.x1 - e.x0, e.y1 - e.y0, p.H]; },
   view: { az: 35, el: 28 }, layout: "forms", auto: true,
   dims(p, k = 1) {
