@@ -59,11 +59,32 @@ $("diag-copy").onclick = async () => { try { await navigator.clipboard.writeText
 function buildTiles() {
   const label = (a) => (a.name.startsWith(a.type + " ") ? a.name.slice(a.type.length + 1) : a.name);
   // длинное название не уменьшается, а обрезается с «…» (CSS); полное название — во всплывающей подсказке
-  const tile = (a) => `<button type="button" class="tile" role="radio" aria-checked="false" data-article="${a.id}" title="${a.about}"><b title="${label(a)}">${label(a)}</b><small>${a.type}</small></button>`;
+  // необязательные поля артикула: cardSubtitle — подпись вместо типа, cardTooltip — строки всплывающей подсказки (вместо стандартной title)
+  const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+  const tile = (a) => a.cardTooltip
+    ? `<button type="button" class="tile" role="radio" aria-checked="false" data-article="${a.id}" data-tip="${esc(a.cardTooltip.join("\n"))}" aria-description="${esc(a.cardTooltip.join(". "))}"><b>${label(a)}</b><small>${a.cardSubtitle ?? a.type}</small></button>`
+    : `<button type="button" class="tile" role="radio" aria-checked="false" data-article="${a.id}" title="${a.about}"><b title="${label(a)}">${label(a)}</b><small>${a.cardSubtitle ?? a.type}</small></button>`;
   const cats = [...new Set(articles.map((a) => a.category))];                       // категории — в порядке реестра: Ножки и опоры, Подстолья, Подстолья Круглые, Рейлы, Вешалки, Под раковины, Другое
   $("tiles").innerHTML = cats.map((c) => `<section class="cat" data-category="${c}"><h2>${c}</h2><div class="tiles">${articles.filter((a) => a.category === c).map(tile).join("")}</div></section>`).join("");
   for (const b of $("tiles").querySelectorAll(".tile")) b.onclick = () => selectArticle(b.dataset.article);
+  for (const b of $("tiles").querySelectorAll(".tile[data-tip]")) {
+    b.addEventListener("mouseenter", () => showTip(b)); b.addEventListener("focus", () => showTip(b));
+    b.addEventListener("mouseleave", hideTip); b.addEventListener("blur", hideTip);
+  }
 }
+// всплывающая подсказка карточки: один элемент в body (position: fixed — не обрезается сеткой карточек), прижимается к краям окна
+const tipEl = Object.assign(document.createElement("div"), { className: "card-tip", role: "tooltip", hidden: true });
+document.body.append(tipEl);
+function showTip(b) {
+  tipEl.innerHTML = b.dataset.tip.split("\n").map((t, i) => `<div${i === 0 ? ' class="t"' : ""}></div>`).join("");
+  b.dataset.tip.split("\n").forEach((t, i) => { tipEl.children[i].textContent = t; });
+  tipEl.hidden = false;
+  const r = b.getBoundingClientRect(), w = tipEl.offsetWidth, h = tipEl.offsetHeight, m = 8;
+  let x = Math.min(Math.max(m, r.left), window.innerWidth - w - m), y = r.bottom + 6;
+  if (y + h > window.innerHeight - m) y = Math.max(m, r.top - h - 6);
+  tipEl.style.left = x + "px"; tipEl.style.top = y + "px";
+}
+function hideTip() { tipEl.hidden = true; }
 function selectArticle(id) {
   cur = byId[id]; values = { ...cur.defaults }; last = null;
   for (const b of $("tiles").querySelectorAll(".tile")) b.setAttribute("aria-checked", String(b.dataset.article === id));
