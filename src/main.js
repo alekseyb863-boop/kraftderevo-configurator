@@ -57,7 +57,9 @@ $("diag-copy").onclick = async () => { try { await navigator.clipboard.writeText
 
 // ---------- плитки артикулов ----------
 function buildTiles() {
-  const tile = (a) => `<button type="button" class="tile" role="radio" aria-checked="false" data-article="${a.id}" title="${a.about}"><b>${a.name.startsWith(a.type + " ") ? a.name.slice(a.type.length + 1) : a.name}</b><small>${a.type}</small></button>`;
+  const label = (a) => (a.name.startsWith(a.type + " ") ? a.name.slice(a.type.length + 1) : a.name);
+  // длинное название не уменьшается, а обрезается с «…» (CSS); полное название — во всплывающей подсказке
+  const tile = (a) => `<button type="button" class="tile" role="radio" aria-checked="false" data-article="${a.id}" title="${a.about}"><b title="${label(a)}">${label(a)}</b><small>${a.type}</small></button>`;
   const cats = [...new Set(articles.map((a) => a.category))];                       // категории — в порядке реестра: Ножки и опоры, Подстолья, Подстолья Круглые, Рейлы, Вешалки, Под раковины, Другое
   $("tiles").innerHTML = cats.map((c) => `<section class="cat" data-category="${c}"><h2>${c}</h2><div class="tiles">${articles.filter((a) => a.category === c).map(tile).join("")}</div></section>`).join("");
   for (const b of $("tiles").querySelectorAll(".tile")) b.onclick = () => selectArticle(b.dataset.article);

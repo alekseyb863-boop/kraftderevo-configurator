@@ -55,7 +55,7 @@ function circle(c, axis, r = HOLE_R, m = 32) {
 }
 
 export const spec = {
-  id: "H031", type: "Опора", category: "Ножки и опоры", name: "Опора Н031",
+  id: "H031", type: "Опора", category: "Ножки и опоры", name: "Опора Прямоугольная",
   about: "Опора для барной стойки, прямоугольная рама. Площадка крепления и отверстия — в блоке «Дополнительно»",
   controls,
   normalize(raw) {
