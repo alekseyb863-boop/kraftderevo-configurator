@@ -107,6 +107,10 @@ function showTip(b) {
   tipEl.style.left = x + "px"; tipEl.style.top = y + "px";
 }
 function hideTip() { tipEl.hidden = true; }
+// мобильные: после касания подсказка остаётся (нет mouseleave) — прячем при прокрутке страницы или любого контейнера (capture), при движении пальца и касании вне карточки
+window.addEventListener("scroll", hideTip, { capture: true, passive: true });
+window.addEventListener("touchmove", hideTip, { passive: true });
+document.addEventListener("pointerdown", (e) => { if (!tipEl.hidden && !e.target.closest?.(".tile[data-tip]")) hideTip(); }, { passive: true });
 function selectArticle(id) {
   cur = byId[id]; values = { ...cur.defaults }; last = null;
   for (const b of $("tiles").querySelectorAll(".tile")) b.setAttribute("aria-checked", String(b.dataset.article === id));
