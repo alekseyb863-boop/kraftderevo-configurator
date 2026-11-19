@@ -62,8 +62,8 @@ function buildTiles() {
   // необязательные поля артикула: cardSubtitle — подпись вместо типа, cardTooltip — строки всплывающей подсказки (вместо стандартной title)
   const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
   const tile = (a) => a.cardTooltip
-    ? `<button type="button" class="tile" role="radio" aria-checked="false" data-article="${a.id}" data-tip="${esc(a.cardTooltip.join("\n"))}" aria-description="${esc(a.cardTooltip.join(". "))}"><b>${label(a)}</b><small>${a.cardSubtitle ?? a.type}</small></button>`
-    : `<button type="button" class="tile" role="radio" aria-checked="false" data-article="${a.id}" title="${a.about}"><b title="${label(a)}">${label(a)}</b><small>${a.cardSubtitle ?? a.type}</small></button>`;
+    ? `<button type="button" class="tile" role="radio" aria-checked="false" data-article="${a.id}" data-search="${esc(searchKey(a, label(a)))}" data-tip="${esc(a.cardTooltip.join("\n"))}" aria-description="${esc(a.cardTooltip.join(". "))}"><b>${label(a)}</b><small>${a.cardSubtitle ?? a.type}</small></button>`
+    : `<button type="button" class="tile" role="radio" aria-checked="false" data-article="${a.id}" data-search="${esc(searchKey(a, label(a)))}" title="${a.about}"><b title="${label(a)}">${label(a)}</b><small>${a.cardSubtitle ?? a.type}</small></button>`;
   const cats = [...new Set(articles.map((a) => a.category))];                       // категории — в порядке реестра: Ножки и опоры, Подстолья, Подстолья Круглые, Рейлы, Вешалки, Под раковины, Другое
   $("tiles").innerHTML = cats.map((c) => `<section class="cat" data-category="${c}"><h2>${c}</h2><div class="tiles">${articles.filter((a) => a.category === c).map(tile).join("")}</div></section>`).join("");
   for (const b of $("tiles").querySelectorAll(".tile")) b.onclick = () => selectArticle(b.dataset.article);
@@ -72,6 +72,28 @@ function buildTiles() {
     b.addEventListener("mouseleave", hideTip); b.addEventListener("blur", hideTip);
   }
 }
+// ---------- поиск по карточкам: форма (название карточки) и артикулы (id, название, подпись с кодами) ----------
+// регистр не важен; латинские буквы, похожие на кириллические (H/Н, A/А, B/В, K/К …), считаются одинаковыми; «_» = «-», «ё» = «е»
+const LOOKALIKE = { a: "а", b: "в", c: "с", e: "е", h: "н", k: "к", m: "м", o: "о", p: "р", t: "т", x: "х", y: "у", "ё": "е", _: "-" };
+const normSearch = (s) => String(s).toLowerCase().replace(/[abcehkmoptxyё_]/g, (ch) => LOOKALIKE[ch]).replace(/\s+/g, " ").trim();
+function searchKey(a, lbl) { return normSearch([lbl, a.name, a.id, a.cardSubtitle ?? ""].join(" | ")); }
+const SEARCH_MIN = 3, SEARCH_DEBOUNCE_MS = 300;
+let searchTimer = 0;
+function applySearch() {
+  const q = normSearch($("search").value), on = q.length >= SEARCH_MIN;
+  let total = 0;
+  for (const sec of $("tiles").querySelectorAll(".cat")) {
+    let n = 0;
+    for (const t of sec.querySelectorAll(".tile")) { const ok = !on || t.dataset.search.includes(q); t.hidden = !ok; n += ok; }
+    sec.hidden = n === 0; total += n;
+  }
+  $("search-empty").hidden = !(on && total === 0);
+  hideTip();
+}
+$("search").addEventListener("input", () => { $("search-clear").hidden = !$("search").value; clearTimeout(searchTimer); searchTimer = setTimeout(applySearch, SEARCH_DEBOUNCE_MS); });
+$("search").addEventListener("keydown", (e) => { if (e.key === "Escape" && $("search").value) { e.preventDefault(); $("search-clear").click(); } });
+$("search-clear").onclick = () => { clearTimeout(searchTimer); $("search").value = ""; $("search-clear").hidden = true; applySearch(); $("search").focus(); };
+
 // всплывающая подсказка карточки: один элемент в body (position: fixed — не обрезается сеткой карточек), прижимается к краям окна
 const tipEl = Object.assign(document.createElement("div"), { className: "card-tip", role: "tooltip", hidden: true });
 document.body.append(tipEl);

@@ -13,6 +13,11 @@
   <details id="diag" class="diag" open hidden><summary>Диагностика (отправьте этот текст разработчику)</summary><pre id="diag-text"></pre><button type="button" id="diag-copy" class="secondary">Скопировать</button></details>
   <main>
     <form id="form" autocomplete="off" onsubmit="return false">
+      <div class="search" role="search">
+        <input type="text" id="search" placeholder="Поиск по форме или артикулу" aria-label="Поиск по форме или артикулу" autocomplete="off" spellcheck="false">
+        <button type="button" id="search-clear" class="search-clear" aria-label="Очистить поиск" title="Очистить" hidden>×</button>
+      </div>
+      <p id="search-empty" class="search-empty" hidden>Ничего не найдено</p>
       <div id="tiles" class="cats" role="radiogroup" aria-label="Артикул"></div>
       <p id="about" class="about"></p>
       <h2>Параметры</h2>
