@@ -108,7 +108,7 @@ export const spec = {
     return [dimAB([0, 0, 0], [W, 0, 0], [0, -O, 0], [W, -O, 0], `${W} мм`), dimAB([0, 0, 0], [0, 0, H], [-O, 0, 0], [-O, 0, H], `${H} мм`)];
   },
   textLines: (p) => {
-    const lines = ["Опора Н031", `Профиль ${prof(p).label} мм`, `Цвет: ${p.color}`, `Ширина: ${p.W} мм`, `Высота: ${p.H} мм`];
+    const lines = ["Прямоугольная опора", `Профиль ${prof(p).label} мм`, `Цвет: ${p.color}`, `Ширина: ${p.W} мм`, `Высота: ${p.H} мм`];
     if (p.plate) lines.push(`Площадка: ${p.PL}×${p.PW}×${PLATE_T} мм`);
     return lines;
   },
