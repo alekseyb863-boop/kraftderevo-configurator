@@ -57,7 +57,7 @@ $("diag-copy").onclick = async () => { try { await navigator.clipboard.writeText
 
 // ---------- плитки артикулов ----------
 function buildTiles() {
-  const label = (a) => (a.name.startsWith(a.type + " ") ? a.name.slice(a.type.length + 1) : a.name);
+  const label = (a) => a.cardLabel ?? (a.name.startsWith(a.type + " ") ? a.name.slice(a.type.length + 1) : a.name);
   // длинное название не уменьшается, а обрезается с «…» (CSS); полное название — во всплывающей подсказке
   // необязательные поля артикула: cardSubtitle — подпись вместо типа, cardTooltip — строки всплывающей подсказки (вместо стандартной title)
   const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
