@@ -7,7 +7,7 @@ import { SQUARES, range, profileCtl, colorCtl, intCtl, findIn, baseNormalize } f
 import { dim } from "../render/dimhelpers.js";
 
 const controls = [range("L", "Длина", 600, 2400, 10, 1200), range("D", "Ширина", 400, 1200, 10, 700), range("H", "Высота", 300, 1100, 10, 710),
-  profileCtl("40x40", "profile", "Профиль", SQUARES), colorCtl("RAL 9001 cream"),
+  profileCtl("40x40", "profile", "Профиль", SQUARES), colorCtl("черный"),
   { ...intCtl("nBeams", "Кол-во доп. балок", 0, 5, 0), extra: true }];
 /** x-интервалы доп. балок: внутренняя длина L−2P делится на N+1 равных промежутков */
 const beamXs = (L, P, n) => { const g = (L - 2 * P - n * P) / (n + 1); return Array.from({ length: n }, (_, i) => { const a = -L / 2 + P + (i + 1) * g + i * P; return [a, a + P]; }); };
