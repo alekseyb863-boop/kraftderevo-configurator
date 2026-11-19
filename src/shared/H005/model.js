@@ -35,5 +35,5 @@ export const spec = {
     return [dimAB([0, 0, 0], [WB, 0, 0], [0, -O, 0], [WB, -O, 0], `${WB} мм`), dimAB([d, 0, H], [WB - d, 0, H], [d, 0, H + O], [WB - d, 0, H + O], `${WT} мм`),
       dimAB([0, 0, 0], [d, 0, H], [-O, 0, 0], [-O, 0, H], `${H} мм`)];
   },
-  textLines: (p) => ["Ножка Н005", `Профиль ${findIn(PROFILES, p.profile).label} мм`, `Цвет: ${p.color}`, `Ширина верха: ${p.WT} мм`, `Ширина низа: ${p.WB} мм`, `Высота: ${p.H} мм`],
+  textLines: (p) => ["П-образная опора", `Профиль ${findIn(PROFILES, p.profile).label} мм`, `Цвет: ${p.color}`, `Ширина верха: ${p.WT} мм`, `Ширина низа: ${p.WB} мм`, `Высота: ${p.H} мм`],
 };
