@@ -80,7 +80,7 @@ export const spec = {
     return len(cTL, cTR) + len(cBL, cBR) + len(cTR, cBL) + len(cTL, inter(up, g.left)) + len(cBR, inter(lo, g.right));
   },
   expectBBox: (p) => [Math.max(p.WT, p.WB), prof(p).a, p.H],
-  view: { az: 0, el: 0 }, layout: "forms",
+  view: { az: -30, el: 16 }, layout: "forms",          // 3/4 спереди-слева, как на фото заказчика: плоскость ножки уходит вправо вглубь
   dims(p, k = 1) {
     const g = geo(p), { WT, WB, H } = p, O = 70 * k, xl = Math.min(g.TL[0], g.BL[0]);
     const iu = innerPolygon(g.upper, [g.b, g.b, g.b]), il = innerPolygon(g.lower, [g.b, g.b, g.b]);
