@@ -115,7 +115,8 @@ function selectArticle(id) {
   cur = byId[id]; values = { ...cur.defaults }; last = null;
   for (const b of $("tiles").querySelectorAll(".tile")) b.setAttribute("aria-checked", String(b.dataset.article === id));
   $("about").textContent = cur.about; history.replaceState(null, "", "#" + id);
-  $("show-rodlen-row").hidden = !cur.hasRodLength;                     // флажок метража прутка — только у артикулов с прутками (Н105)
+  $("show-rodlen-row").hidden = !cur.hasRodLength;
+  $("show-sway-row").hidden = !cur.hasSway;                              // «Раскачка» — только у подстолий                     // флажок метража прутка — только у артикулов с прутками (Н105)
   buildControls(); setButtons(false); request(0);
 }
 
@@ -192,6 +193,7 @@ function syncControls(p, force) {
 }
 $("show-len").onchange = () => request(0);
 $("show-rodlen").onchange = () => request(0);
+$("show-sway").onchange = () => request(0);
 // «№ заказа»: поле активно только при включённой галочке; номер — крупный заголовок чертежа
 $("show-order").onchange = () => { const on = $("show-order").checked; $("order-no").disabled = !on; if (on) $("order-no").focus(); if ($("order-no").value.trim()) request(0); };
 $("order-no").oninput = () => request();                                  // «Показать метраж»: перерисовать с/без строки метража
@@ -205,7 +207,7 @@ async function pump() {
   const art = cur.id, snapshot = { ...values }, force = syncAll; syncAll = false;
   inflight = art; dirty = false; setStatus("считаю…", "busy");
   try {
-    const r = await call({ type: "draw", article: art, params: snapshot, showLen: $("show-len").checked, showRodLen: !$("show-rodlen-row").hidden && $("show-rodlen").checked, order: $("show-order").checked ? $("order-no").value : "" });
+    const r = await call({ type: "draw", article: art, params: snapshot, showLen: $("show-len").checked, showRodLen: !$("show-rodlen-row").hidden && $("show-rodlen").checked, showSway: !$("show-sway-row").hidden && $("show-sway").checked, order: $("show-order").checked ? $("order-no").value : "" });
     if (!dirty && cur.id === art) show(r, force);
   } catch (e) { setStatus("ошибка: " + e.message, "err"); console.error(e); }
   finally { inflight = null; if (dirty) request(0); }

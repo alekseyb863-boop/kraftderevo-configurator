@@ -21,6 +21,7 @@
 import { prism, bisect } from "../lib/model.js";
 import { range, profileCtl, findIn, baseNormalize } from "../lib/params.js";
 import { dim, dimAB } from "../render/dimhelpers.js";
+import { Irect, Arect, portalK, closedFrameK, fem2d, swayFromK } from "../lib/sway.js";
 
 const D2R = Math.PI / 180, MIN_LEN = 8;
 /** сечения a × b: a = размер ИЗ плоскости галочки (толщина), b = ширина бруска В плоскости галочки */
@@ -88,6 +89,15 @@ export const spec = {
   },
   derive: (p) => dv(p),
   parts,
+  /** раскачка вдоль длины (lib/sway.js), ГРУБО: верхней рамы нет — верх галочек держит столешница (принято: торец галочки привинчен к столешнице — не опускается и не поворачивается, только сдвигается вместе с ней). Галочка в своей плоскости — стержневая модель «торец — вершина — торец» (брусок b в плоскости, a из плоскости),
+   *  низ — шарнир на полу; вклад вдоль длины = k·cos² угла плоскости галочки к длине; изгиб из плоскости и касания вершин не учитываются */
+  sway(p) {
+    const g = dv(p); if (g.error) return null;
+    const { a, b } = prof(p), I = Irect(b, a), Ar = Arect(b, a), sc = g.B + g.w / 2;
+    const u = fem2d([[sc, 0], [g.w / 2, p.H / 2], [sc, p.H]], [{ n: [0, 1], I, A: Ar }, { n: [1, 2], I, A: Ar }], [[0, "x"], [0, "z"], [2, "z"], [2, "r"]], [[2, 1, 0]]);
+    const ang = g.swap ? Math.PI / 2 - g.phi : g.phi;                       // угол плоскости галочки к длине (X)
+    return swayFromK(4 * (1 / u[2][0]) * Math.cos(ang) ** 2);
+  },
   /** метраж: 4 галочки × 2 бруска по оси (торец → середина вершины) */
   profileLength(p) { const g = dv(p); return g.error ? 0 : 8 * Math.hypot(g.B, p.H / 2); },
   expectBBox: (p) => [p.W, p.D, p.H],

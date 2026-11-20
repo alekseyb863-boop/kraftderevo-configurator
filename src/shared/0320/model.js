@@ -12,6 +12,7 @@ import { PROFILES_BASE, range, profileCtl, colorCtl, findIn, baseNormalize, fram
 import { box, free, frame } from "../lib/model.js";
 import { dim, dimAB } from "../render/dimhelpers.js";
 import { frameMembers, sum } from "../lib/length.js";
+import { Irect, Arect, portalK, closedFrameK, fem2d, swayFromK } from "../lib/sway.js";
 
 export const GAP_MIN = 20;
 const prof = (p) => findIn(PROFILES_BASE, p.profile);
@@ -45,6 +46,10 @@ export const spec = {
     const parts = [left, right, box(a, L - a, S, S + ra, H - rb, H), box(a, L - a, WT - S - ra, WT - S, H - rb, H)];
     return parts.map((s) => s.translate([-L / 2, -WT / 2, 0]));
   },
+  /** раскачка вдоль длины (lib/sway.js): 2 портала (по стойке из каждой рамы-трапеции + царга), стойки a×b (a вдоль длины), царги плашмя;
+   *  наклон стоек — в плоскости ширины, поэтому высота портала заменена длиной стойки (приближённо); нижняя перекладина трапеции идёт поперёк — не учитывается */
+  sway(p) { const { a, b } = prof(p), { a: ra, b: rb } = rprof(p), h = p.H - rb / 2, ls = Math.hypot(h, (p.WT - p.WB) / 2);
+    return swayFromK(2 * portalK(ls, Irect(a, b), p.L - a, Irect(rb, ra))); },
   /** метраж: 2 рамы-трапеции (профиль подстолья, наклонные стойки — по своей оси) + 2 царги (профиль царг) */
   profileLength(p) { const { a, b } = prof(p); return 2 * sum(frameMembers(outer(p), [b, b, b, b])) + 2 * (p.L - 2 * a); },
   expectBBox: (p) => [p.L, p.WT, p.H],

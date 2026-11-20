@@ -5,6 +5,7 @@
 import { box } from "../lib/model.js";
 import { SQUARES, PROFILES, range, profileCtl, colorCtl, intCtl, findIn, baseNormalize } from "../lib/params.js";
 import { dim } from "../render/dimhelpers.js";
+import { Irect, Arect, portalK, closedFrameK, fem2d, swayFromK } from "../lib/sway.js";
 
 // профили: квадратные + прямоугольные a×b (60×30 …). Ножки: a — вдоль длины стола (X), b — вдоль ширины (Y).
 // Верхняя рамка и доп. балки лежат плашмя: b — по высоте, a — по ширине; верх вровень с ножками, снаружи вровень с ножками.
@@ -32,6 +33,9 @@ export const spec = {
     for (const [xa, xb] of beamXs(L, A, p.nBeams)) out.push(box(xa, xb, -hy + A, hy - A, H - B, H));                          // доп. балки плашмя, между длинными царгами
     return out;
   },
+  /** раскачка вдоль длины (lib/sway.js): 2 портала (передний и задний) — ножки A×B (A вдоль длины), длинные царги плашмя (изгиб по слабой оси),
+   *  шарнир у пола, h — до оси царг, пролёт — между осями ножек; доп. балки поперёк на раскачку вдоль длины не влияют */
+  sway(p) { const { a: A, b: B } = prof(p); return swayFromK(2 * portalK(p.H - B / 2, Irect(A, B), p.L - A, Irect(B, A))); },
   /** метраж: 4 ножки + верхняя рамка + доп. балки */
   profileLength(p) { const { a: A, b: B } = prof(p); return 4 * p.H + 2 * (p.L - 2 * A) + 2 * (p.D - 2 * B) + p.nBeams * (p.D - 2 * A); },
   expectBBox: (p) => [p.L, p.D, p.H],

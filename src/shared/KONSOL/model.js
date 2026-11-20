@@ -13,6 +13,7 @@ import * as R from "replicad";
 import { box } from "../lib/model.js";
 import { range, profileCtl, colorCtl, findIn, baseNormalize } from "../lib/params.js";
 import { dimAB } from "../render/dimhelpers.js";
+import { Irect, Arect, portalK, closedFrameK, fem2d, swayFromK } from "../lib/sway.js";
 
 /** прямоугольная труба: a — большая сторона (30), b — малая (15) */
 const RECTS = [["20x10", 20, 10], ["30x15", 30, 15], ["40x20", 40, 20], ["50x25", 50, 25]].map(([id, a, b]) => ({ id, a, b, label: `${a}×${b}` }));
@@ -65,6 +66,10 @@ export const spec = {
       out.push(R.makeCylinder(FOOT_R, FOOT_H, [cx, cy, 0], [0, 0, 1]));      // регуляторы высоты
     return out;
   },
+  /** раскачка вдоль длины (lib/sway.js): передняя рама — портал (ножки + верхняя труба, шарнир на регуляторах), задняя — замкнутая (есть нижняя труба);
+   *  ножки w×t (w вдоль длины), продольные трубы плашмя; рамы связаны боковыми трубами — жёсткости складываются */
+  sway(p) { const { a: w, b: t } = prof(p), Ic = Irect(w, t), Ib = Irect(t, w), L = p.L - w;
+    return swayFromK(portalK(p.H - t / 2 - FOOT_H, Ic, L, Ib) + closedFrameK(p.H - t - FOOT_H, Ic, L, Ib, Ib, Arect(w, t), Arect(t, w))); },
   /** метраж: 4 ножки + верхний контур + 2 боковые нижние + задняя нижняя (площадки и регуляторы не считаются) */
   profileLength(p) { const { a: w, b: t } = prof(p), { L, D, H } = p; return 4 * (H - FOOT_H) + 3 * (L - 2 * w) + 4 * (D - 2 * t); },
   expectBBox: (p) => [p.L, p.D, p.H],

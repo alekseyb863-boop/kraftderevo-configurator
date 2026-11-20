@@ -13,6 +13,7 @@ import { dimAB } from "../render/dimhelpers.js";
 import { makeView } from "../render/projection.js";
 import { circle3, extremeOn } from "../render/leaders.js";
 import { frameMembers, stripLen, dist3, sum } from "../lib/length.js";
+import { Irect, Arect, portalK, closedFrameK, fem2d, swayFromK } from "../lib/sway.js";
 
 const ARMS = [228, 108, -12];                             // направления лучей, град (между лучами всегда 120°); ракурс как на референсе, 228° — левый луч
 const controls = [
@@ -55,6 +56,15 @@ export const spec = {
     const out = ARMS.map((th) => one.clone().rotate(th, [0, 0, 0], [0, 0, 1]));
     free(one);
     return out;
+  },
+  /** раскачка (круглое, любое направление; lib/sway.js): рама «нижний луч + ножка», верх (звезда + столешница) — жёсткий: конец ножки сдвигается без поворота и
+   *  без вертикального смещения; низы ножек и центр — шарниры на полу. 3 рамы через 120° → k·Σcos² = 1,5·k в любом направлении. Изгиб лучей из плоскости не учитывается */
+  sway(p) {
+    const { a, b } = prof(p), I = Irect(b, a), Ar = Arect(b, a), Rt = rad(p.Dt, a), Rb = rad(p.Db, a), zb = b / 2, zt = p.H - b / 2;
+    const lean = Math.hypot(p.H, Rt - Rb) / p.H, xAt = (z) => Rb + ((Rt - Rb) * z) / p.H - (b / 2) * lean;   // ось ножки (наружная грань − b/2 по нормали)
+    const nodes = [[0, zb], [xAt(zb), zb], [xAt(zt), zt]];
+    const u = fem2d(nodes, [{ n: [0, 1], I, A: Ar }, { n: [1, 2], I, A: Ar }], [[0, "x"], [0, "z"], [1, "x"], [1, "z"], [2, "z"], [2, "r"]], [[2, 1, 0]]);
+    return swayFromK(1.5 / u[2][0], true);
   },
   /** метраж: 3 рамы (нижний луч + ножка + верхний луч) по оси */
   profileLength(p) { const b = prof(p).b; return 3 * sum(frameMembers(outline(p), [b, b, b, 0], [3])); },

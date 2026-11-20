@@ -26,6 +26,7 @@ import { box, free } from "../lib/model.js";
 import { legFrame } from "../H031/model.js";
 import { dim } from "../render/dimhelpers.js";
 import { frameMembers, stripLen, dist3, sum } from "../lib/length.js";
+import { Irect, Arect, portalK, closedFrameK, fem2d, swayFromK } from "../lib/sway.js";
 
 export const GAP_MIN = 20;
 const prof = (p) => findIn(PROFILES_BASE, p.profile);
@@ -55,6 +56,9 @@ export const spec = {
       box(a, L - a, (W - a) / 2, (W + a) / 2, 0, b)];                                                // bottom beam, centred
     return parts.map((s) => s.translate([-L / 2, -W / 2, 0]));
   },
+  /** раскачка вдоль длины (lib/sway.js): 2 замкнутые рамы — стойки a×b (a вдоль длины), верхняя балка плашмя, нижняя балка (одна на две рамы → I/2 на раму)
+   *  у пола связывает низы ножек; h — между осями верхней и нижней балок, пролёт — между осями ножек */
+  sway(p) { const { a, b } = prof(p), Ib = Irect(b, a); return swayFromK(2 * closedFrameK(p.H - b, Irect(a, b), p.L - a, Ib, Ib / 2, Arect(a, b), Arect(b, a))); },
   /** метраж: 2 рамы-ножки + 2 верхние балки + нижняя балка */
   profileLength(p) { const { a, b } = prof(p), { L, W, H } = p; return 2 * sum(frameMembers([[0, 0], [W, 0], [W, H], [0, H]], [b, b, b, b])) + 3 * (L - 2 * a); },
   expectBBox: (p) => [p.L, p.W, p.H],

@@ -14,6 +14,7 @@ import { dimAB } from "../render/dimhelpers.js";
 import { makeView } from "../render/projection.js";
 import { circle3, extremeOn } from "../render/leaders.js";
 import { frameMembers, stripLen, dist3, sum } from "../lib/length.js";
+import { Irect, Arect, portalK, closedFrameK, fem2d, swayFromK } from "../lib/sway.js";
 
 const SQ = [15, 20, 25, 30, 40].map((a) => ({ id: `${a}x${a}`, a, b: a, label: `${a}×${a}` }));
 const LEGS = [10, 100, 190, 280];                         // ракурс: все 4 ножки видны (как у 0118)
@@ -60,6 +61,15 @@ export const spec = {
     for (const z0 of [0, p.H - a])
       for (const th of [LEGS[0], LEGS[1]]) out.push(box(-xe, xe, -a / 2, a / 2, z0, z0 + a).rotate(th, [0, 0, 0], [0, 0, 1]));
     return out;
+  },
+  /** раскачка (круглое, любое горизонтальное направление; lib/sway.js): плоская рама через две противоположные ножки-галки с балками креста вверху и внизу,
+   *  ножки — шарниры на полу; две такие рамы под 90° → жёсткость одинакова в любом направлении (k·cos² + k·sin² = k) */
+  sway(p) {
+    const c = chevron(p), a = c.a, I = Irect(a, a), Ar = Arect(a, a), r = c.R - a / 2, rk = c.R - p.g - a / 2, zt = p.H - a / 2, zb = a / 2;
+    const nodes = [[r, zb], [rk, p.H / 2], [r, zt], [-r, zt], [-rk, p.H / 2], [-r, zb]];
+    const el = [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 0]].map((n) => ({ n, I, A: Ar }));
+    const u = fem2d(nodes, el, [[0, "x"], [0, "z"], [5, "x"], [5, "z"]], [[2, 0.5, 0], [3, 0.5, 0]]);
+    return swayFromK(1 / ((u[2][0] + u[3][0]) / 2), true);
   },
   /** метраж: 4 галки (по оси, обе части) + 4 балки крестов */
   profileLength(p) {

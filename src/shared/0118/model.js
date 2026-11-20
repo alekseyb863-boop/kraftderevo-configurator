@@ -11,6 +11,7 @@ import { range, profileCtl, colorCtl, findIn, baseNormalize } from "../lib/param
 import { dimAB } from "../render/dimhelpers.js";
 import { makeView } from "../render/projection.js";
 import { circle3, extremeOn } from "../render/leaders.js";
+import { Irect, Arect, portalK, closedFrameK, fem2d, swayFromK } from "../lib/sway.js";
 
 const SQ = [15, 20, 25, 30, 40].map((a) => ({ id: `${a}x${a}`, a, b: a, label: `${a}×${a}` }));
 const LEGS = [10, 100, 190, 280];                       // ракурс как на фото: все 4 ножки видны, две ближе, две дальше
@@ -45,6 +46,9 @@ export const spec = {
     }
     return out;
   },
+  /** раскачка (круглое; lib/sway.js), ГРУБО: 4 ножки a×a между кольцами; кольца заменены прямыми ригелями длиной в четверть окружности π(D − a)/4
+   *  (между соседними ножками) с сечением кольца; 2 замкнутые рамы, ножки — шарниры на полу (нижнее кольцо лежит на полу) */
+  sway(p) { const a = prof(p).a, I = Irect(a, a), Ar = Arect(a, a); return swayFromK(2 * closedFrameK(p.H - a, I, (Math.PI * (p.D - a)) / 4, I, I, Ar, Ar), true); },
   /** метраж: 2 кольца по средней линии π·(D − a) + 4 ножки (H − 2a) */
   profileLength(p) { const a = prof(p).a; return 2 * Math.PI * (p.D - a) + 4 * (p.H - 2 * a); },
   expectBBox: (p) => [p.D, p.D, p.H],
