@@ -114,9 +114,9 @@ export const spec = {
     const arcAt = (inner, i, u1, u2) => { const v = inner[i], c = inc(inner), dc = Math.hypot(c[0] - v[0], c[1] - v[1]);
       const r = Math.min(Math.max(30, Math.min(70, 0.12 * Math.min(WT, WB, H))), 0.45 * dc), rl = Math.min(Math.max(r + 38, 48 / Math.sin((p.A * Math.PI) / 360)), dc);
       return angleArcXZ(v, u1, u2, r, rl, `${p.A}°`); };
-    // с прутками верхний треугольник занят: дуга у вершины, выноска от дуги вниз-влево наружу ножки, подпись слева от левой наклонной чуть ниже верха
+    // с прутками верхний треугольник занят: дуга у вершины, выноска из вершины внутреннего угла вниз-влево наружу ножки, подпись слева от левой наклонной чуть ниже верха
     const upOut = () => { const v = iu[0], r = Math.max(30, Math.min(55, 0.1 * Math.min(WT, H)));
-      const a = angleArcXZ(v, [1, 0], g.uUp, r, 0, `${p.A}°`, 0, 32, true); a.at = [g.TL[0] - 60 * k, 0, p.H - Math.min(150, 0.2 * p.H) * k]; return a; };
+      const a = angleArcXZ(v, [1, 0], g.uUp, r, 0, `${p.A}°`, 0, 32, true); a.at = [g.TL[0] - 60 * k, 0, p.H - Math.min(150, 0.2 * p.H) * k]; a.from = [v[0], 0, v[1]]; return a; };   // выноска — из вершины угла
     return [
       dimAB([-WT / 2, 0, H], [WT / 2, 0, H], [-WT / 2, 0, H + O], [WT / 2, 0, H + O], `${WT} мм`),
       dimAB([-WB / 2, 0, 0], [WB / 2, 0, 0], [-WB / 2, 0, -O], [WB / 2, 0, -O], `${WB} мм`),

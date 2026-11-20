@@ -1,5 +1,5 @@
 // Угловой размер (дуга с подписью, например «70°») — тонкая дуга без стрелок и горизонтальная подпись у середины дуги.
-//   d = { arc: true, pts: [3D точки дуги], at: 3D точка центра подписи, text, lead?: подпись вынесена — линия-выноска от дуги к подписи }
+//   d = { arc: true, pts: [3D точки дуги], at: 3D точка центра подписи, text, lead?: подпись вынесена — линия-выноска от дуги (или от точки from) к подписи }
 // Возвращает то же, что buildDim (для проверки наложений): дуга — как размерная линия, подпись — прямоугольник.
 import { layoutBox, textPathD } from "./fonts.js";
 import { pt } from "./dimensions.js";
@@ -17,7 +17,7 @@ export function buildArc(d, ctx) {
   const x0 = c[0] - lb.width / 2, baseline = c[1] + (lb.top - lb.bottom) / 2;
   svg.push(`<g class="dim-label" data-text="${d.text}"><path d="${textPathD(d.text, x0, baseline, size, false)}" stroke="none"/></g>`);
   if (d.lead) {                                                           // подпись вынесена наружу: тонкая линия от середины дуги до края подписи
-    const m = px[Math.floor(px.length / 2)], v = [c[0] - m[0], c[1] - m[1]], L = Math.hypot(v[0], v[1]), hw = lb.width / 2 + padp, hh = (lb.top + lb.bottom) / 2 + padp;
+    const m = d.from ? toPx(P2(...d.from)) : px[Math.floor(px.length / 2)], v = [c[0] - m[0], c[1] - m[1]], L = Math.hypot(v[0], v[1]), hw = lb.width / 2 + padp, hh = (lb.top + lb.bottom) / 2 + padp;
     const t = Math.min(Math.abs(v[0]) > 1e-9 ? hw / Math.abs(v[0]) : Infinity, Math.abs(v[1]) > 1e-9 ? hh / Math.abs(v[1]) : Infinity) * L;   // от центра до края прямоугольника
     const e = [c[0] - (v[0] / L) * t, c[1] - (v[1] / L) * t];
     svg.push(`<polyline points="${f(m[0])},${f(m[1])} ${f(e[0])},${f(e[1])}" fill="none"/>`); line.push([m, e]);
