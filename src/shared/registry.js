@@ -29,4 +29,4 @@ export const ARTICLES = [H031, H005, H050, H027_1, H112, H028, H030_2, H043, H03
 export const CATEGORIES = [...new Set(ARTICLES.map((s) => s.category))];
 export const BY_ID = Object.fromEntries(ARTICLES.map((s) => [s.id, s]));
 /** serialisable description of all articles for the UI (no functions) */
-export const meta = () => ARTICLES.map((s) => ({ id: s.id, type: s.type, category: s.category, name: s.name, about: s.about, cardLabel: s.cardLabel, cardSubtitle: s.cardSubtitle, cardTooltip: s.cardTooltip, controls: s.controls, defaults: s.normalize({}).p }));
+export const meta = () => ARTICLES.map((s) => ({ id: s.id, type: s.type, category: s.category, name: s.name, about: s.about, cardLabel: s.cardLabel, cardSubtitle: s.cardSubtitle, cardTooltip: s.cardTooltip, hasRodLength: !!s.rodLengthLines, controls: s.controls, defaults: s.normalize({}).p }));

@@ -6,16 +6,21 @@
 //   3) от левого конца верха (TL) вниз-вправо — наклонная под углом A («Угол ножек», между верхом и наклонной, внутри треугольника) до диагонали → верхний треугольник;
 //      от правого конца низа (BR) вверх-влево — наклонная под тем же углом A к низу до диагонали → нижний треугольник.
 //   Модель = верхняя рама-треугольник ∪ нижняя рама-треугольник ∪ полоса диагонали (стыки «в ус», наружные углы острые).
+// ПРУТКИ (необязательно, «Кол-во прутков» N): круглый пруток Ø8 в верхнем треугольнике, параллельно левой наклонной (тот же «Угол ножек» к верху),
+//   от нижней грани верхней перекладины до грани диагонали, по центру глубины профиля; оси прутков делят внутреннюю кромку верха на N+1 равных частей.
+//   Максимум: просвет между соседними прутками (поперёк прутков) не меньше диаметра прутка.
 // ПРОВЕРКА: наклонные должны упираться в диагональ в пределах её длины, треугольники — вмещать профиль; иначе угол подбирается ближайший допустимый (предупреждение).
+import * as R from "replicad";
 import { prism, frame, innerPolygon } from "../lib/model.js";
-import { range, profileCtl, colorCtl, findIn, baseNormalize, frameFeasible } from "../lib/params.js";
+import { range, intCtl, profileCtl, colorCtl, findIn, baseNormalize, frameFeasible } from "../lib/params.js";
 import { PROFILES_H031 } from "../H031/model.js";
 import { dimAB } from "../render/dimhelpers.js";
 import { angleArcXZ } from "../render/arcs.js";
 
 const prof = (p) => findIn(PROFILES_H031, p.profile);
 const controls = [range("WT", "Ширина верха", 150, 1200, 10, 500), range("WB", "Ширина низа", 150, 1200, 10, 300), range("H", "Высота", 300, 1500, 10, 710),
-  range("A", "Угол ножек", 30, 89, 1, 70, "°"), profileCtl("40x20", "profile", "Профиль", PROFILES_H031), colorCtl("черный")];
+  range("A", "Угол ножек", 30, 89, 1, 70, "°"), profileCtl("40x20", "profile", "Профиль", PROFILES_H031), colorCtl("черный"), intCtl("nRods", "Кол-во прутков", 0, 60, 0)];
+export const ROD_D = 8;
 
 const sub = (a, b) => [a[0] - b[0], a[1] - b[1]], add = (a, b) => [a[0] + b[0], a[1] + b[1]], mul = (a, k) => [a[0] * k, a[1] * k];
 const unit = (v) => { const l = Math.hypot(v[0], v[1]); return [v[0] / l, v[1] / l]; };
@@ -42,6 +47,15 @@ export function geo(p) {
   const upper = [TL, P, TR], lower = [BL, BR, Q], strip = [BL, R0, TR, L1];
   return { b, TL, TR, BL, BR, P, Q, d, right, left, uUp, uLo, upper, lower, strip };
 }
+/** прутки: [[x0, z0], [x1, z1]] — ось каждого прутка от нижней грани верха до грани диагонали */
+export function rods(p, n = p.nRods) {
+  const g = geo(p), iu = innerPolygon(g.upper, [g.b, g.b, g.b]), x0 = iu[0][0], x1 = iu[2][0], zt = iu[0][1], out = [];
+  for (let i = 1; i <= n; i++) { const s = [x0 + ((x1 - x0) * i) / (n + 1), zt]; out.push([s, inter([s, g.uUp], g.left)]); }
+  return out;
+}
+/** максимум прутков: просвет между соседними (поперёк прутков) ≥ диаметра */
+export const maxRods = (p) => { const g = geo(p), iu = innerPolygon(g.upper, [g.b, g.b, g.b]), Lt = iu[2][0] - iu[0][0], sa = Math.sin((p.A * Math.PI) / 180);
+  return Math.max(0, Math.floor((Lt * sa) / (2 * ROD_D)) - 1); };
 /** форма собирается: наклонные упираются в диагональ в пределах высоты, треугольники вмещают профиль */
 const feasible = (p) => {
   const g = geo(p), { b, P, Q, H = p.H } = { ...g, H: p.H };
@@ -64,11 +78,18 @@ export const spec = {
         Object.assign(p, { WT: def.WT, WB: def.WB, H: def.H, A: def.A });
       }
     }
+    const mr = maxRods(p);
+    if (p.nRods > mr) { warnings.push(`«Кол-во прутков»: ${p.nRods} → ${mr} (иначе просвет между прутками меньше ${ROD_D} мм).`); p.nRods = mr; }
     return { p, warnings };
   },
   parts(p) {
     const g = geo(p), y1 = prof(p).a;
-    return [frame(g.upper, [g.b, g.b, g.b], 0, y1), frame(g.lower, [g.b, g.b, g.b], 0, y1), prism(g.strip, 0, y1)];
+    const out = [frame(g.upper, [g.b, g.b, g.b], 0, y1), frame(g.lower, [g.b, g.b, g.b], 0, y1), prism(g.strip, 0, y1)];
+    for (const [s, e] of rods(p)) {                                         // пруток заходит в перекладины на 2 мм с каждой стороны (сварка → одно тело)
+      const L = Math.hypot(e[0] - s[0], e[1] - s[1]), u = [(e[0] - s[0]) / L, (e[1] - s[1]) / L];
+      out.push(R.makeCylinder(ROD_D / 2, L + 4, [s[0] - 2 * u[0], y1 / 2, s[1] - 2 * u[1]], [u[0], 0, u[1]]));
+    }
+    return out;
   },
   /** метраж по осям: верх, низ, диагональ — между осями соседних перекладин; наклонные — от оси перекладины до грани диагонали */
   profileLength(p) {
@@ -79,6 +100,9 @@ export const spec = {
     const cTL = inter(top, up), cTR = inter(top, dc), cBL = inter(bot, dc), cBR = inter(bot, lo);
     return len(cTL, cTR) + len(cBL, cBR) + len(cTR, cBL) + len(cTL, inter(up, g.left)) + len(cBR, inter(lo, g.right));
   },
+  /** метраж прутка — отдельная строка, свой флажок «Показать метраж прутка» в интерфейсе */
+  rodLength: (p) => rods(p).reduce((t, [s, e]) => t + Math.hypot(e[0] - s[0], e[1] - s[1]), 0),
+  rodLengthLines: (p) => (p.nRods > 0 ? [`Метраж прутка: ${(spec.rodLength(p) / 1000).toFixed(1)} м`] : []),
   expectBBox: (p) => [Math.max(p.WT, p.WB), prof(p).a, p.H],
   view: { az: -30, el: 16 }, layout: "forms",          // 3/4 спереди-слева, как на фото заказчика: плоскость ножки уходит вправо вглубь
   dims(p, k = 1) {
@@ -90,13 +114,17 @@ export const spec = {
     const arcAt = (inner, i, u1, u2) => { const v = inner[i], c = inc(inner), dc = Math.hypot(c[0] - v[0], c[1] - v[1]);
       const r = Math.min(Math.max(30, Math.min(70, 0.12 * Math.min(WT, WB, H))), 0.45 * dc), rl = Math.min(Math.max(r + 38, 48 / Math.sin((p.A * Math.PI) / 360)), dc);
       return angleArcXZ(v, u1, u2, r, rl, `${p.A}°`); };
+    // с прутками верхний треугольник занят: дуга у вершины, подпись вынесена наружу за левый верхний угол (по биссектрисе назад), с выноской
+    const upOut = () => { const v = iu[0], r = Math.max(30, Math.min(55, 0.1 * Math.min(WT, H))), bis = unit(add([1, 0], g.uUp)), d0 = Math.hypot(v[0] - g.TL[0], v[1] - g.TL[1]);
+      const at = add(v, mul(bis, -(d0 + 75 * k))), rl = -(d0 + 75 * k);
+      const a = angleArcXZ(v, [1, 0], g.uUp, r, 0, `${p.A}°`, 0, 32, true); a.at = [at[0], 0, at[1]]; return a; };
     return [
       dimAB([-WT / 2, 0, H], [WT / 2, 0, H], [-WT / 2, 0, H + O], [WT / 2, 0, H + O], `${WT} мм`),
       dimAB([-WB / 2, 0, 0], [WB / 2, 0, 0], [-WB / 2, 0, -O], [WB / 2, 0, -O], `${WB} мм`),
       dimAB([WB / 2, 0, 0], [WT / 2, 0, H], [xr + O, 0, 0], [xr + O, 0, H], `${H} мм`),             // высота — справа, от правых концов верха и низа
-      arcAt(iu, 0, [1, 0], g.uUp),                                                                         // угол у верхнего треугольника
+      p.nRods > 0 ? upOut() : arcAt(iu, 0, [1, 0], g.uUp),                                                 // угол у верхнего треугольника (с прутками — подпись снаружи)
       arcAt(il, 1, [-1, 0], g.uLo),                                                                        // угол у нижнего треугольника
     ];
   },
-  textLines: (p) => ["Ножка Н105", `Профиль ${prof(p).label} мм`, `Цвет: ${p.color}`, `Ширина верха: ${p.WT} мм`, `Ширина низа: ${p.WB} мм`, `Высота: ${p.H} мм`, `Угол ножек: ${p.A}°`],
+  textLines: (p) => ["Ножка Н105", `Профиль ${prof(p).label} мм`, `Цвет: ${p.color}`, `Ширина верха: ${p.WT} мм`, `Ширина низа: ${p.WB} мм`, `Высота: ${p.H} мм`, `Угол ножек: ${p.A}°`, ...(p.nRods > 0 ? [`Кол-во прутков: ${p.nRods} (Ø${ROD_D} мм)`] : [])],
 };

@@ -41,6 +41,7 @@ input[type=text], input[type=number], select { font: inherit; padding: 4px 6px; 
 .showlen { display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; user-select: none; }
 .order { display: flex; flex-direction: column; gap: 6px; min-width: 160px; }
 .order input[type=text]:disabled { background: #f2f2f2; color: #999; cursor: not-allowed; }
+.showlen[hidden] { display: none; }
 .showlen input { width: 16px; height: 16px; margin: 0; }
 button { font: inherit; padding: 7px 12px; border: 0; border-radius: 6px; background: #1d6fd1; color: #fff; cursor: pointer; }
 button.secondary { background: #888; } button:disabled { opacity: .5; cursor: wait; }
