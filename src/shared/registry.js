@@ -1,6 +1,7 @@
 // All articles (browser-safe: no fs).  Order = order in the selector.
 import { spec as H031 } from "./H031/model.js";
 import { spec as H114 } from "./H114/model.js";
+import { spec as A0320 } from "./0320/model.js";
 import { spec as V006_2 } from "./V006-2/model.js";
 import { spec as V004 } from "./V004/model.js";
 import { spec as VA012 } from "./VA012/model.js";
@@ -23,7 +24,7 @@ import { spec as A0159 } from "./0159/model.js";
 import { spec as A0090 } from "./0090/model.js";
 import { spec as A0011 } from "./0011/model.js";
 // порядок: Ножки и опоры → Подстолья → Подстолья Круглые → Рейлы → Вешалки → Под раковины → Другое
-export const ARTICLES = [H031, H005, H050, H027_1, H112, H028, H030_2, H043, H038, A0090, A0011, H114, H098, YOZH, KONSOL, H091, A0118, A0159, V006_2, V004, VA012, VA008, TUMBA_KUH];
+export const ARTICLES = [H031, H005, H050, H027_1, H112, H028, H030_2, H043, H038, A0090, A0011, H114, A0320, H098, YOZH, KONSOL, H091, A0118, A0159, V006_2, V004, VA012, VA008, TUMBA_KUH];
 export const CATEGORIES = [...new Set(ARTICLES.map((s) => s.category))];
 export const BY_ID = Object.fromEntries(ARTICLES.map((s) => [s.id, s]));
 /** serialisable description of all articles for the UI (no functions) */
