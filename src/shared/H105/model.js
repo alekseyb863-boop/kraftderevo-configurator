@@ -82,7 +82,7 @@ export const spec = {
   expectBBox: (p) => [Math.max(p.WT, p.WB), prof(p).a, p.H],
   view: { az: -30, el: 16 }, layout: "forms",          // 3/4 спереди-слева, как на фото заказчика: плоскость ножки уходит вправо вглубь
   dims(p, k = 1) {
-    const g = geo(p), { WT, WB, H } = p, O = 70 * k, xl = Math.min(g.TL[0], g.BL[0]);
+    const g = geo(p), { WT, WB, H } = p, O = 70 * k, xr = Math.max(g.TR[0], g.BR[0]);
     const iu = innerPolygon(g.upper, [g.b, g.b, g.b]), il = innerPolygon(g.lower, [g.b, g.b, g.b]);
     // подпись — на биссектрисе: при остром угле дальше от вершины, но не дальше центра вписанной окружности внутреннего треугольника (самое просторное место)
     const inc = (t) => { const [A, B, C] = t, la = Math.hypot(B[0] - C[0], B[1] - C[1]), lb = Math.hypot(A[0] - C[0], A[1] - C[1]), lc = Math.hypot(A[0] - B[0], A[1] - B[1]), s = la + lb + lc;
@@ -93,7 +93,7 @@ export const spec = {
     return [
       dimAB([-WT / 2, 0, H], [WT / 2, 0, H], [-WT / 2, 0, H + O], [WT / 2, 0, H + O], `${WT} мм`),
       dimAB([-WB / 2, 0, 0], [WB / 2, 0, 0], [-WB / 2, 0, -O], [WB / 2, 0, -O], `${WB} мм`),
-      dimAB([-WB / 2, 0, 0], [-WT / 2, 0, H], [xl - O, 0, 0], [xl - O, 0, H], `${H} мм`),
+      dimAB([WB / 2, 0, 0], [WT / 2, 0, H], [xr + O, 0, 0], [xr + O, 0, H], `${H} мм`),             // высота — справа, от правых концов верха и низа
       arcAt(iu, 0, [1, 0], g.uUp),                                                                         // угол у верхнего треугольника
       arcAt(il, 1, [-1, 0], g.uLo),                                                                        // угол у нижнего треугольника
     ];
