@@ -12,7 +12,7 @@ const PLATE_T = 4;
 const HOLE_R = 2.5;
 const HOLE_GAP = 8;
 /** те же сечения, что у остальных опор, плюс квадрат 20×20 */
-const PROFILES_H031 = [{ id: "20x20", a: 20, b: 20, label: "20×20" }, ...PROFILES];
+export const PROFILES_H031 = [{ id: "20x20", a: 20, b: 20, label: "20×20" }, ...PROFILES];
 
 const controls = [
   range("W", "Ширина", 150, 1000, 10, 450),
