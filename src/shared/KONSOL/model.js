@@ -9,9 +9,12 @@
 //   Низ z ∈ [10, 10+t]: боковые перемычки у пола x ∈ [0,w]/[L−w,L], y ∈ [t, D−t]; задняя продольная x ∈ [w, L−w], y ∈ [D−w, D].
 //   Площадки 50×20×4: верх вровень с рамой, 20 мм внутрь проёма. Короткие стороны — по 1 ровно по центру;
 //     длинные — по 2 с равными промежутками ножка–площадка–площадка–ножка.
+// ФЛАЖКИ (в «Параметрах», на чертёж текстом не выводятся, все включены по умолчанию):
+//   pads «Площадки» — площадки крепления (и строка про них в тексте); feet «Регуляторы высоты» — без них рама стоит на полу (z0 = 0) и занимает всю «Высоту»;
+//   lower «Нижняя царга» — задняя нижняя продольная труба (боковые нижние перемычки остаются); без неё задняя рама — портал (в «Раскачке»).
 import * as R from "replicad";
 import { box } from "../lib/model.js";
-import { range, profileCtl, colorCtl, findIn, baseNormalize } from "../lib/params.js";
+import { range, profileCtl, colorCtl, checkCtl, findIn, baseNormalize } from "../lib/params.js";
 import { dimAB } from "../render/dimhelpers.js";
 import { Irect, Arect, portalK, closedFrameK, fem2d, swayFromK } from "../lib/sway.js";
 
@@ -26,7 +29,12 @@ const controls = [
   range("H", "Высота", 300, 1200, 1, 620),
   profileCtl("30x15", "profile", "Профиль", RECTS),
   colorCtl("черный"),
+  checkCtl("pads", "Площадки", true),
+  checkCtl("feet", "Регуляторы высоты", true),
+  checkCtl("lower", "Нижняя царга", true),
 ];
+/** низ рамы: на регуляторах или прямо на полу */
+const z0of = (p) => (p.feet ? FOOT_H : 0);
 const prof = (p) => findIn(RECTS, p.profile);
 /** положения площадок: [x0,x1] на длинных сторонах и [y0,y1] на коротких */
 function pads(p) {
@@ -43,35 +51,38 @@ export const spec = {
     const { a: w, b: t } = prof(p);
     // промежуток между площадками на длинной стороне ≥ 20 (иначе площадки упираются в боковые), просвет по ширине ≥ 2 площадок
     const Lmin = 2 * w + 2 * PAD_L + 3 * (PAD_W + 5);
-    if (p.L < Lmin) { warnings.push(`«Длина»: ${p.L} → ${Lmin} мм (иначе не помещаются площадки).`); p.L = Lmin; }
+    if (p.pads && p.L < Lmin) { warnings.push(`«Длина»: ${p.L} → ${Lmin} мм (иначе не помещаются площадки).`); p.L = Lmin; }
     const Dmin = 2 * w + PAD_L + 2 * (PAD_W + 5);
-    if (p.D < Dmin) { warnings.push(`«Ширина»: ${p.D} → ${Dmin} мм (иначе не помещаются площадки).`); p.D = Dmin; }
-    const Hmin = FOOT_H + 3 * t + 20;
+    if (p.pads && p.D < Dmin) { warnings.push(`«Ширина»: ${p.D} → ${Dmin} мм (иначе не помещаются площадки).`); p.D = Dmin; }
+    const Hmin = z0of(p) + 3 * t + 20;
     if (p.H < Hmin) { warnings.push(`«Высота»: ${p.H} → ${Hmin} мм.`); p.H = Hmin; }
     return { p, warnings };
   },
   parts(p) {
-    const { a: w, b: t } = prof(p), { L, D, H } = p, z0 = FOOT_H, out = [];
+    const { a: w, b: t } = prof(p), { L, D, H } = p, z0 = z0of(p), out = [];
     for (const [x0, x1] of [[0, w], [L - w, L]])
       for (const [y0, y1] of [[0, t], [D - t, D]])
         out.push(box(x0, x1, y0, y1, z0, H));                               // ножки
     out.push(box(w, L - w, 0, w, H - t, H), box(w, L - w, D - w, D, H - t, H));  // передняя и задняя верхние
     out.push(box(0, w, t, D - t, H - t, H), box(L - w, L, t, D - t, H - t, H));  // боковые верхние
     out.push(box(0, w, t, D - t, z0, z0 + t), box(L - w, L, t, D - t, z0, z0 + t)); // боковые нижние у пола
-    out.push(box(w, L - w, D - w, D, z0, z0 + t));                          // задняя нижняя продольная
-    const { xs, ys } = pads(p);
-    for (const [x0, x1] of xs) out.push(box(x0, x1, w, w + PAD_W, H - PAD_T, H), box(x0, x1, D - w - PAD_W, D - w, H - PAD_T, H));
-    out.push(box(w, w + PAD_W, ys[0], ys[1], H - PAD_T, H), box(L - w - PAD_W, L - w, ys[0], ys[1], H - PAD_T, H));
-    for (const [cx, cy] of [[w / 2, FOOT_R], [L - w / 2, FOOT_R], [w / 2, D - FOOT_R], [L - w / 2, D - FOOT_R]])
+    if (p.lower) out.push(box(w, L - w, D - w, D, z0, z0 + t));             // задняя нижняя продольная (нижняя царга)
+    if (p.pads) {
+      const { xs, ys } = pads(p);
+      for (const [x0, x1] of xs) out.push(box(x0, x1, w, w + PAD_W, H - PAD_T, H), box(x0, x1, D - w - PAD_W, D - w, H - PAD_T, H));
+      out.push(box(w, w + PAD_W, ys[0], ys[1], H - PAD_T, H), box(L - w - PAD_W, L - w, ys[0], ys[1], H - PAD_T, H));
+    }
+    if (p.feet) for (const [cx, cy] of [[w / 2, FOOT_R], [L - w / 2, FOOT_R], [w / 2, D - FOOT_R], [L - w / 2, D - FOOT_R]])
       out.push(R.makeCylinder(FOOT_R, FOOT_H, [cx, cy, 0], [0, 0, 1]));      // регуляторы высоты
     return out;
   },
   /** раскачка вдоль длины (lib/sway.js): передняя рама — портал (ножки + верхняя труба, шарнир на регуляторах), задняя — замкнутая (есть нижняя труба);
-   *  ножки w×t (w вдоль длины), продольные трубы плашмя; рамы связаны боковыми трубами — жёсткости складываются */
-  sway(p) { const { a: w, b: t } = prof(p), Ic = Irect(w, t), Ib = Irect(t, w), L = p.L - w;
-    return swayFromK(portalK(p.H - t / 2 - FOOT_H, Ic, L, Ib) + closedFrameK(p.H - t - FOOT_H, Ic, L, Ib, Ib, Arect(w, t), Arect(t, w))); },
-  /** метраж: 4 ножки + верхний контур + 2 боковые нижние + задняя нижняя (площадки и регуляторы не считаются) */
-  profileLength(p) { const { a: w, b: t } = prof(p), { L, D, H } = p; return 4 * (H - FOOT_H) + 3 * (L - 2 * w) + 4 * (D - 2 * t); },
+   *  ножки w×t (w вдоль длины), продольные трубы плашмя; рамы связаны боковыми трубами — жёсткости складываются. Без нижней царги обе рамы — порталы;
+   *  без регуляторов рама стоит на полу (высота рамы больше на FOOT_H) */
+  sway(p) { const { a: w, b: t } = prof(p), Ic = Irect(w, t), Ib = Irect(t, w), L = p.L - w, z0 = z0of(p), kp = portalK(p.H - t / 2 - z0, Ic, L, Ib);
+    return swayFromK(kp + (p.lower ? closedFrameK(p.H - t - z0, Ic, L, Ib, Ib, Arect(w, t), Arect(t, w)) : kp)); },
+  /** метраж: 4 ножки + верхний контур + 2 боковые нижние + задняя нижняя, если есть (площадки и регуляторы не считаются) */
+  profileLength(p) { const { a: w, b: t } = prof(p), { L, D, H } = p; return 4 * (H - z0of(p)) + (p.lower ? 3 : 2) * (L - 2 * w) + 4 * (D - 2 * t); },
   expectBBox: (p) => [p.L, p.D, p.H],
   view: { az: 35, el: 18 }, layout: "forms", auto: true,
   dims(p, k = 1) {
@@ -87,6 +98,6 @@ export const spec = {
   },
   textLines: (p) => {
     const { a, b } = prof(p);
-    return ["Консоль", `Профиль ${a}×${b} мм`, `Цвет: ${p.color}`, `Длина: ${p.L} мм`, `Ширина: ${p.D} мм`, `Высота: ${p.H} мм`, "Площадки для крепления: 6шт", "Регуляторы высоты: 4шт"];
+    return ["Консоль", `Профиль ${a}×${b} мм`, `Цвет: ${p.color}`, `Длина: ${p.L} мм`, `Ширина: ${p.D} мм`, `Высота: ${p.H} мм`, ...(p.pads ? ["Площадки для крепления: 6шт"] : []), ...(p.feet ? ["Регуляторы высоты: 4шт"] : [])];
   },
 };
