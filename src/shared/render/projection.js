@@ -20,13 +20,36 @@ function drawingPolylines(drawing) {
   }
   return out;
 }
-/** returns { lines: polylines [[x,y]..] in screen mm (y up), P2, checks } */
-export function projectSolid(solid, azDeg, elDeg) {
+const edgePolyline = (e) => {
+  if (e.geomType === "LINE") { const a = e.startPoint, b = e.endPoint; return [[a.x, a.y], [b.x, b.y]]; }
+  const pl = []; for (let i = 0; i <= 48; i++) { const q = e.pointAt(i / 48); pl.push([q.x, q.y]); } return pl;
+};
+const inHull = (H) => (q) => { let s = 0; for (let i = 0; i < H.length; i++) { const a = H[i], b = H[(i + 1) % H.length], c = (b[0] - a[0]) * (q[1] - a[1]) - (b[1] - a[1]) * (q[0] - a[0]); if (c) { if (s && Math.sign(c) !== s) return false; s = Math.sign(c); } } return true; };
+const hull2 = (P) => { P = [...P].sort((a, b) => a[0] - b[0] || a[1] - b[1]); const cr = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]), lo = [], up = [];
+  for (const q of P) { while (lo.length > 1 && cr(lo[lo.length - 2], lo[lo.length - 1], q) <= 0) lo.pop(); lo.push(q); }
+  for (const q of P.reverse()) { while (up.length > 1 && cr(up[up.length - 2], up[up.length - 1], q) <= 0) up.pop(); up.push(q); }
+  return [...lo.slice(0, -1), ...up.slice(0, -1)]; };
+/** returns { lines: polylines [[x,y]..] in screen mm (y up), P2, checks }
+ *  hlr (опц.): { smooth: false — не рисовать гладкие (касательные) рёбра; dropSharpIn: [[x0,y0,z0],[x1,y1,z1]] — убрать острые рёбра (линии пересечений),
+ *  целиком попадающие в проекцию этого 3D-бокса }. Силуэтные контуры (outline) остаются всегда. */
+export function projectSolid(solid, azDeg, elDeg, hlr = null) {
   const view = makeView(azDeg, elDeg), { N, RIGHT, P2 } = view;
   const camera = new R.ProjectionCamera(N.map((x) => x * 5000), N, RIGHT);
-  const { visible, hidden } = R.drawProjection(solid, camera);
-  let lines = drawingPolylines(visible);
-  for (const d of [visible, hidden]) { try { d && d.delete(); } catch { /* already freed */ } }
+  let lines, sharp = null;
+  if (!hlr) {
+    const { visible, hidden } = R.drawProjection(solid, camera);
+    lines = drawingPolylines(visible);
+    for (const d of [visible, hidden]) { try { d && d.delete(); } catch { /* already freed */ } }
+  } else {
+    const oc = R.getOC(), hl = new oc.HLRBRep_Algo(); hl.Add(solid.wrapped, 0);
+    const pj = new oc.HLRAlgo_Projector(camera.wrapped); hl.Projector(pj); hl.Update(); hl.Hide();
+    const h = new oc.HLRBRep_HLRToShape(hl), get = (sh) => (sh.IsNull() ? [] : R.cast(sh).edges);
+    const conv = (es) => es.map((e) => { oc.BRepLib.BuildCurves3d(e.wrapped); return edgePolyline(e); });
+    sharp = conv(get(h.VCompound()));
+    lines = [...(hlr.smooth === false ? [] : conv(get(h.Rg1LineVCompound()))), ...conv(get(h.OutLineVCompound()))];
+    for (const o of [h, pj, hl]) { try { o.delete(); } catch { /* ok */ } }
+  }
+  if (sharp) { lines = [...sharp, ...lines]; }
   // reference projection of the true model vertices (mesh vertices of a polyhedron = its vertices)
   const m = solid.mesh({ tolerance: 0.1, angularTolerance: 0.1 }), ref = [];
   for (let i = 0; i < m.vertices.length; i += 3) ref.push(P2(m.vertices[i], m.vertices[i + 1], m.vertices[i + 2]));
@@ -35,6 +58,10 @@ export function projectSolid(solid, azDeg, elDeg) {
   const err = [rb[2] - rb[0] - (db[2] - db[0]), rb[3] - rb[1] - (db[3] - db[1])];
   const shift = [rb[0] - db[0], rb[1] - db[1]];
   lines = lines.map((pl) => pl.map((p) => [p[0] + shift[0], p[1] + shift[1]]));
+  if (sharp && hlr.dropSharpIn) {                                                       // острые рёбра внутри зоны — убрать (силуэты не трогаем)
+    const [a, b] = hlr.dropSharpIn, inside = inHull(hull2([0, 1].flatMap((i) => [0, 1].flatMap((j) => [0, 1].map((k) => P2(i ? b[0] : a[0], j ? b[1] : a[1], k ? b[2] : a[2]))))));
+    lines = lines.filter((pl, i) => i >= sharp.length || !pl.every(inside));
+  }
   // mirror/orientation check: each extreme model vertex (min/max x, min/max y) must coincide with a visible line end point
   const ends = lines.flatMap((pl) => [pl[0], pl[pl.length - 1]]);
   // curved edges (e.g. cylinders) are sampled polylines: an extreme mesh vertex on a circle lies on the curve, not at its end point

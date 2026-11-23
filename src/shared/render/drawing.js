@@ -91,8 +91,8 @@ ${extra.length ? `  <g id="box" fill="none" stroke="#000" stroke-width="${f2(pt(
  * auto=false -> exactly one pass with the reference layout (what build.js uses so previews stay identical).
  * returns { svg, W, H, check, projection, header, adjust }
  */
-export function buildDrawing({ solid, view, layout, makeDims, textLines, auto = true, margin = 8, extra = [], marks = [], soft = false }) {
-  const proj = projectSolid(solid, view.az, view.el);
+export function buildDrawing({ solid, view, layout, makeDims, textLines, auto = true, margin = 8, extra = [], marks = [], soft = false, hlr = null }) {
+  const proj = projectSolid(solid, view.az, view.el, hlr);
   const attempt = (layoutName, k, shrink, search) => {
     const dims = makeDims(k);
     const dimPts = [...dims.flatMap((d) => d.leader ? leaderPts(d, proj.P2) : d.arc ? arcPts(d, proj.P2) : [proj.P2(...d.a), proj.P2(...d.b)]), ...extra.flatMap(([a, b]) => [proj.P2(...a), proj.P2(...b)]), ...marks.flat().map((q) => proj.P2(...q))];

@@ -57,6 +57,8 @@ export const spec = {
     }
     return [PL - mn, PL - mn, p.H];
   },
+  /** чертёж: только внешние контуры прутков — без касательных швов «прямой участок / изгиб» и без линии стыка центрального прутка с петлёй */
+  hlr: () => ({ smooth: false, dropSharpIn: [[-20, -20, -1], [45, 45, 40]] }),
   view: { az: -45, el: 18 }, layout: "forms", auto: true,
   dims(p, k = 1) {
     const { H } = p, O = 45 * k;
