@@ -14,6 +14,7 @@ import { box } from "../lib/model.js";
 import { range, colorCtl, baseNormalize } from "../lib/params.js";
 import { dimAB } from "../render/dimhelpers.js";
 
+export const HOLE_D = 5;
 export const PL = 100, PW = 24, PT = 3, ROD_D = 12, BEND_R = 12, EDGE = 12;
 const r = ROD_D / 2, RC = BEND_R + r, C = PW / 2, U_OUT = PL - EDGE - r - C;   // U_OUT — смещение крайнего прутка от центрального (70)
 const controls = [range("H", "Высота", 150, 1200, 1, 710), colorCtl("Черный")];
@@ -56,6 +57,12 @@ export const spec = {
       mn = Math.min(mn, x - r * Math.sqrt(1 - tx * tx));
     }
     return [PL - mn, PL - mn, p.H];
+  },
+  /** 4 отверстия Ø5 под крепление — только имитация (окружности на верхней грани полок, как «Тумба кух.» / 1187), в модели не вырезаются, без размеров.
+   *  По 2 на катет, по центру ширины 24, на 1/3 и 2/3 между осями центрального (12) и крайнего (82) прутков: 35,3 и 58,7 мм от наружного угла. */
+  holes: () => [1, 2].flatMap((i) => { const u = C + (U_OUT * i) / 3; return [[u, C], [C, u]]; }),
+  marks(p) {
+    return spec.holes().map(([x, y]) => Array.from({ length: 29 }, (_, i) => { const t = (2 * Math.PI * i) / 28; return [x + (HOLE_D / 2) * Math.cos(t), y + (HOLE_D / 2) * Math.sin(t), p.H]; }));
   },
   /** чертёж: только внешние контуры прутков — без касательных швов «прямой участок / изгиб» и без линии стыка центрального прутка с петлёй */
   hlr: () => ({ smooth: false, dropSharpIn: [[-20, -20, -1], [45, 45, 40]] }),
