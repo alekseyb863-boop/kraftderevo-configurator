@@ -6,9 +6,8 @@
 //   и параллельной ей через (0, H − V); угол наклона следует из размеров;
 //   нижняя лапка: нижняя грань z = 0 от x = Wt − F до x = Wt (длина F), идёт обратно к стене;
 //   ушко: вертикальная пластина 10 (над верхом лапки) × a (ширина трубы) × 3 мм на верхней грани лапки у её свободного конца, заподлицо с торцом;
-//   2 сквозных отверстия Ø5 в вертикальном верхе, по оси X (через правую видимую грань x = a), по центру ширины, на 40 и 100 мм от верхнего торца.
-//   На чертеже отверстия — только контуры, без размеров и выносок.
-import * as R from "replicad";
+//   2 отверстия Ø5 — имитация: окружности на правой видимой грани вертикального верха (x = a), по центру ширины, на 40 и 100 мм от верха;
+//   в модели не вырезаются (как отверстия «Тумба кух.»: spec.marks), на чертеже без размеров и выносок.
 import { prism, box } from "../lib/model.js";
 import { SQUARES, range, profileCtl, colorCtl, findIn, baseNormalize } from "../lib/params.js";
 import { dimAB } from "../render/dimhelpers.js";
@@ -53,8 +52,12 @@ export const spec = {
   },
   parts(p) {
     const o = outline(p), a = o.a, { H, W, F } = p;
-    const tube = HOLES.reduce((s, h) => s.cut(R.makeCylinder(HOLE_D / 2, a + 2, [-1, a / 2, H - h], [1, 0, 0])), prism(o.pts, 0, a));   // сквозные отверстия
-    return [tube, box(W - F, W - F + EAR_T, 0, a, a, a + EAR_H)];
+    return [prism(o.pts, 0, a), box(W - F, W - F + EAR_T, 0, a, a, a + EAR_H)];
+  },
+  // отверстия Ø5 — только окружности на правой видимой грани x = a (как у «Тумба кух.»), в теле/STL их нет
+  marks(p) {
+    const a = prof(p).a;
+    return HOLES.map((h) => Array.from({ length: 29 }, (_, i) => { const t = (2 * Math.PI * i) / 28; return [a, a / 2 + (HOLE_D / 2) * Math.cos(t), p.H - h + (HOLE_D / 2) * Math.sin(t)]; }));
   },
   /** метраж трубы по оси: верх + наклон + лапка (ушко не считается) */
   profileLength(p) {
