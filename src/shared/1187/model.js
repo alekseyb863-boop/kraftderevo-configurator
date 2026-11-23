@@ -12,6 +12,7 @@ import { prism, box } from "../lib/model.js";
 import { SQUARES, range, profileCtl, colorCtl, findIn, baseNormalize } from "../lib/params.js";
 import { dimAB } from "../render/dimhelpers.js";
 import { makeView } from "../render/projection.js";
+import { angleArcXZ } from "../render/arcs.js";
 
 const VIEW = { az: 38, el: 20 };
 const EAR_H = 10, EAR_T = 3, HOLES = [40, 100], HOLE_D = 5;
@@ -85,8 +86,7 @@ export const spec = {
     const a3 = [g.G[0], 0, g.G[1]], b3 = [p.W, 0, 0];
     return [
       dimAB(a3, b3, [a3[0] + n[0] * O, 0, a3[2] + n[1] * O], [b3[0] + n[0] * O, 0, b3[2] + n[1] * O], `${Math.round(g.len)} мм`),
-      { leader: true, curve: [], tip: a3, elbow: [35 * k, 40 * k], text: fmtDeg(g.top) },
-      { leader: true, curve: [], tip: [g.C[0], 0, g.C[1]], elbow: bottomElbow(p, O), text: fmtDeg(g.bottom) },
+      ...angleArcs(p, k),
     ];
   },
   textLines: (p) => ["Вешалка арт.1187", `Профиль ${prof(p).label} мм`, `Цвет: ${p.color}`, `Высота: ${p.H} мм`],
@@ -112,14 +112,35 @@ function earElbow(p, O) {
  *  на умолчаниях 406,9 → 407 мм (по левой грани было бы 380,7, по оси ≈ 394). Верхний угол = 90° + наклон к горизонтали, нижний = наклон. */
 export function bendInfo(p) {
   const o = outline(p), deg = (o.ang * 180) / Math.PI;
-  return { ang: o.ang, G: o.G, C: o.C, top: 90 + deg, bottom: deg, len: Math.hypot(p.W - o.G[0], o.G[1]) };
+  return { a: o.a, ang: o.ang, G: o.G, C: o.C, top: 90 + deg, bottom: deg, len: Math.hypot(p.W - o.G[0], o.G[1]) };
+}
+/** угловые размеры дугами: центр — внутренний угол изгиба на дальнем ребре (y = a — видимый край внутренних граней, дуга не ложится на трубу),
+ *  стрелки на концах. Подписи ставятся в экранных координатах (размер подписи на экране ~ габарит чертежа S):
+ *  верхняя — правее настенной части и выше дуги и выносной линии размера длины наклона; нижняя — над плечиком левее дуги,
+ *  а если не помещается (короткое плечико) — над дугой левее наклона. Точка подписи переводится обратно в 3D на плоскости y = a. */
+function angleArcs(p, k = 1) {
+  const g = bendInfo(p), a = g.a, { P2, RIGHT, UP } = makeView(VIEW.az, VIEW.el), S = p.H + 90 * k;
+  const r = 0.05 * S, hw = 0.04 * S, hh = 0.016 * S, m = 0.012 * S;
+  const n = (q) => { const L = Math.hypot(q[0], q[1]); return [q[0] / L, q[1] / L]; };
+  const to3 = ([tx, ty]) => {                                                   // P2(x, a, z) = (tx, ty) → x, z
+    const bx = tx - RIGHT[1] * a, by = ty - UP[1] * a, det = RIGHT[0] * UP[2] - RIGHT[2] * UP[0];
+    return [(bx * UP[2] - RIGHT[2] * by) / det, a, (RIGHT[0] * by - bx * UP[0]) / det];
+  };
+  // верх
+  const Gt = P2(g.G[0], a, g.G[1]), G0 = P2(g.G[0], 0, g.G[1]), nn = [Math.sin(g.ang), Math.cos(g.ang)], E = P2(g.G[0] + nn[0], 0, g.G[1] + nn[1]);
+  const slope = (E[1] - G0[1]) / (E[0] - G0[0]), cxT = Gt[0] + m + hw + 0.2 * r;
+  const cyT = Math.max(Gt[1] + r + m + hh, G0[1] + (cxT + hw - G0[0]) * slope + m + hh);
+  const top = angleArcXZ(g.G, [0, 1], n([p.W - g.G[0], -g.G[1]]), r, 0, fmtDeg(g.top), a);
+  top.at = to3([cxT, cyT]); top.arrows = true;
+  // низ
+  const Ct = P2(g.C[0], a, g.C[1]), ear = P2(p.W - p.F + EAR_T, a, a + EAR_H);
+  const s0 = P2(g.C[0], 0, a), s1 = P2(0, 0, p.H - p.V), slantX = (y) => s0[0] + ((s1[0] - s0[0]) * (y - s0[1])) / (s1[1] - s0[1]);
+  const fs = UP[0] / RIGHT[0], edgeY = (x) => Ct[1] + (x - Ct[0]) * fs;                 // дальнее ребро верха плечика на экране (наклонено)
+  let cx = Ct[0] - r - m - hw, cy = 0;
+  for (let i = 0; i < 6; i++) { cy = Math.max(Ct[1], edgeY(cx - hw)) + m + hh; cx = Math.min(Ct[0] - r - m - hw, slantX(cy + hh) - m - hw); }
+  if (cx - hw < ear[0] + m) { cy = Ct[1] + r + m + hh; cx = Math.min(Ct[0] - hw, slantX(cy + hh) - m - hw); }
+  const bot = angleArcXZ(g.C, [-1, 0], [-Math.cos(g.ang), Math.sin(g.ang)], r, 0, fmtDeg(g.bottom), a);
+  bot.at = to3([cx, cy]); bot.arrows = true;
+  return [top, bot];
 }
 const fmtDeg = (v) => `${v.toFixed(1).replace(".", ",")}°`;
-/** колено выноски нижнего угла: подпись слева от наклона, над лапкой и ниже подписи «Ушко» */
-function bottomElbow(p, O) {
-  const o = outline(p), { P2 } = makeView(VIEW.az, VIEW.el), a = o.a, S = p.H + 2 * O;
-  const T = P2(o.C[0], 0, o.C[1]), Lw = 0.075 * S, dy = 0.12 * S;
-  const s0 = P2(o.C[0], 0, a), s1 = P2(o.pts[1][0], 0, o.pts[1][1]);
-  const x = s0[0] + ((s1[0] - s0[0]) * (T[1] + dy - s0[1])) / (s1[1] - s0[1]);              // левая грань наклона на высоте колена
-  return [x - 0.02 * S - Lw - 0.03 * S - T[0], dy];
-}
