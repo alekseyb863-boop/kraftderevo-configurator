@@ -10,7 +10,7 @@
 //   На чертеже отверстия — только контуры, без размеров и выносок.
 import * as R from "replicad";
 import { prism, box } from "../lib/model.js";
-import { SQUARES, range, profileCtl, findIn, baseNormalize } from "../lib/params.js";
+import { SQUARES, range, profileCtl, colorCtl, findIn, baseNormalize } from "../lib/params.js";
 import { dimAB } from "../render/dimhelpers.js";
 import { makeView } from "../render/projection.js";
 
@@ -18,10 +18,11 @@ const VIEW = { az: 38, el: 20 };
 const EAR_H = 10, EAR_T = 3, HOLES = [40, 100], HOLE_D = 5;
 const controls = [
   profileCtl("20x20", "profile", "Профиль", SQUARES),
-  range("H", "Высота", 300, 1200, 1, 520),
-  range("W", "Ширина", 100, 500, 1, 180),
-  range("V", "Длина верха", 120, 600, 1, 150),
-  range("F", "Длина лапки", 60, 500, 1, 150),
+  range("W", "Общая глубина", 100, 500, 1, 180),
+  range("F", "Глубина плечика", 60, 500, 1, 150),
+  range("H", "Общая высота", 300, 1200, 1, 520),
+  range("V", "Высота настенной части", 120, 600, 1, 150),
+  colorCtl("черный"),
 ];
 const prof = (p) => findIn(SQUARES, p.profile);
 
@@ -42,12 +43,12 @@ export const spec = {
   controls,
   normalize(raw) {
     const { p, warnings } = baseNormalize(controls, raw), a = prof(p).a;
-    const minV = HOLES[1] + 2 * a; if (p.V < minV) { warnings.push(`«Длина верха»: ${p.V} → ${minV} мм (отверстия на 40 и 100 мм от верха).`); p.V = minV; }
-    if (p.V > p.H - 3 * a - 60) { const n = p.H - 3 * a - 60; warnings.push(`«Длина верха»: ${p.V} → ${n} мм (остаётся место на наклон).`); p.V = n; }
-    const minW = 3 * a + 40; if (p.W < minW) { warnings.push(`«Ширина»: ${p.W} → ${minW} мм.`); p.W = minW; }
-    const maxF = Math.floor(p.W - a / 2); if (p.F > maxF) { warnings.push(`«Длина лапки»: ${p.F} → ${maxF} мм (не длиннее ширины).`); p.F = maxF; }
+    const minV = HOLES[1] + 2 * a; if (p.V < minV) { warnings.push(`«Высота настенной части»: ${p.V} → ${minV} мм (отверстия на 40 и 100 мм от верха).`); p.V = minV; }
+    if (p.V > p.H - 3 * a - 60) { const n = p.H - 3 * a - 60; warnings.push(`«Высота настенной части»: ${p.V} → ${n} мм (остаётся место на наклон).`); p.V = n; }
+    const minW = 3 * a + 40; if (p.W < minW) { warnings.push(`«Общая глубина»: ${p.W} → ${minW} мм.`); p.W = minW; }
+    const maxF = Math.floor(p.W - a / 2); if (p.F > maxF) { warnings.push(`«Глубина плечика»: ${p.F} → ${maxF} мм (не больше общей глубины).`); p.F = maxF; }
     // лапка должна выходить за наклон: свободный конец левее места, где наклон встречает лапку
-    const o = outline(p); if (o && o.C[0] - (p.W - p.F) < a + EAR_T) { const n = Math.ceil(p.W - o.C[0] + a + EAR_T); warnings.push(`«Длина лапки»: ${p.F} → ${n} мм (лапка короче наклона).`); p.F = Math.min(n, maxF); }
+    const o = outline(p); if (o && o.C[0] - (p.W - p.F) < a + EAR_T) { const n = Math.ceil(p.W - o.C[0] + a + EAR_T); warnings.push(`«Глубина плечика»: ${p.F} → ${n} мм (плечико короче наклона).`); p.F = Math.min(n, maxF); }
     return { p, warnings };
   },
   parts(p) {
@@ -75,7 +76,7 @@ export const spec = {
       { leader: true, curve: [], tip: [W - F + EAR_T / 2, 0, prof(p).a + EAR_H * 0.6], elbow: earElbow(p, O), text: `Ушко ${EAR_H}×${prof(p).a}` },
     ];
   },
-  textLines: (p) => ["Вешалка арт.1187", `Профиль ${prof(p).label} мм`, `Высота: ${p.H} мм`],
+  textLines: (p) => ["Вешалка арт.1187", `Профиль ${prof(p).label} мм`, `Цвет: ${p.color}`, `Высота: ${p.H} мм`],
 };
 
 /** Колено выноски «Ушко»: подпись (справа от полки) должна поместиться между размерной линией высоты и наклонным участком.
