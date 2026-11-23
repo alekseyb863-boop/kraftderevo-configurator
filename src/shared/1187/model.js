@@ -114,13 +114,13 @@ export function bendInfo(p) {
   const o = outline(p), deg = (o.ang * 180) / Math.PI;
   return { a: o.a, ang: o.ang, G: o.G, C: o.C, top: 90 + deg, bottom: deg, len: Math.hypot(p.W - o.G[0], o.G[1]) };
 }
-/** угловые размеры дугами: центр — внутренний угол изгиба на дальнем ребре (y = a — видимый край внутренних граней, дуга не ложится на трубу),
- *  стрелки на концах. Подписи ставятся в экранных координатах (размер подписи на экране ~ габарит чертежа S):
- *  верхняя — правее настенной части и выше дуги и выносной линии размера длины наклона; нижняя — над плечиком левее дуги,
- *  а если не помещается (короткое плечико) — над дугой левее наклона. Точка подписи переводится обратно в 3D на плоскости y = a. */
+/** угловые размеры дугами без стрелок (как у Н105). Верхний: центр — внутренний угол верхнего изгиба на дальнем ребре (y = a, видимый край
+ *  внутренних граней), подпись правее настенной части выше дуги и выносной линии размера длины наклона. Нижний: центр — видимый внутренний угол
+ *  на передней грани (верхнее переднее ребро плечика ∩ внутреннее переднее ребро наклона), радиус ≈ 1,5 ширины профиля, подпись выше-левее дуги,
+ *  левее наклона. Подписи ставятся в экранных координатах (размер подписи на экране ~ габарит чертежа S) и переводятся в 3D на плоскости y = a. */
 function angleArcs(p, k = 1) {
   const g = bendInfo(p), a = g.a, { P2, RIGHT, UP } = makeView(VIEW.az, VIEW.el), S = p.H + 90 * k;
-  const r = 0.05 * S, hw = 0.04 * S, hh = 0.016 * S, m = 0.012 * S;
+  const r = 0.035 * S, hw = 0.036 * S, hh = 0.015 * S, m = 0.008 * S;
   const n = (q) => { const L = Math.hypot(q[0], q[1]); return [q[0] / L, q[1] / L]; };
   const to3 = ([tx, ty]) => {                                                   // P2(x, a, z) = (tx, ty) → x, z
     const bx = tx - RIGHT[1] * a, by = ty - UP[1] * a, det = RIGHT[0] * UP[2] - RIGHT[2] * UP[0];
@@ -131,16 +131,17 @@ function angleArcs(p, k = 1) {
   const slope = (E[1] - G0[1]) / (E[0] - G0[0]), cxT = Gt[0] + m + hw + 0.2 * r;
   const cyT = Math.max(Gt[1] + r + m + hh, G0[1] + (cxT + hw - G0[0]) * slope + m + hh);
   const top = angleArcXZ(g.G, [0, 1], n([p.W - g.G[0], -g.G[1]]), r, 0, fmtDeg(g.top), a);
-  top.at = to3([cxT, cyT]); top.arrows = true;
-  // низ
-  const Ct = P2(g.C[0], a, g.C[1]), ear = P2(p.W - p.F + EAR_T, a, a + EAR_H);
+  top.at = to3([cxT, cyT]);
+  // низ: вершина — видимый внутренний угол на передней грани (верхнее переднее ребро плечика ∩ внутреннее переднее ребро наклона), y = 0;
+  // дуга малого радиуса (≈ ширина профиля) поверх верхней грани плечика в V-зазоре; подпись выше-левее дуги, левее наклона
+  const rb = 1.5 * a, C0 = P2(g.C[0], 0, g.C[1]), Cf = P2(g.C[0], a, g.C[1]);
   const s0 = P2(g.C[0], 0, a), s1 = P2(0, 0, p.H - p.V), slantX = (y) => s0[0] + ((s1[0] - s0[0]) * (y - s0[1])) / (s1[1] - s0[1]);
-  const fs = UP[0] / RIGHT[0], edgeY = (x) => Ct[1] + (x - Ct[0]) * fs;                 // дальнее ребро верха плечика на экране (наклонено)
-  let cx = Ct[0] - r - m - hw, cy = 0;
-  for (let i = 0; i < 6; i++) { cy = Math.max(Ct[1], edgeY(cx - hw)) + m + hh; cx = Math.min(Ct[0] - r - m - hw, slantX(cy + hh) - m - hw); }
-  if (cx - hw < ear[0] + m) { cy = Ct[1] + r + m + hh; cx = Math.min(Ct[0] - hw, slantX(cy + hh) - m - hw); }
-  const bot = angleArcXZ(g.C, [-1, 0], [-Math.cos(g.ang), Math.sin(g.ang)], r, 0, fmtDeg(g.bottom), a);
-  bot.at = to3([cx, cy]); bot.arrows = true;
+  const fs = UP[0] / RIGHT[0], farY = (x) => Cf[1] + (x - Cf[0]) * fs;                  // дальнее ребро верха плечика на экране (наклонено)
+  const arcTop = P2(g.C[0] - rb * Math.cos(g.ang / 2), 0, g.C[1] + rb * Math.sin(g.ang / 2))[1];
+  let cx = C0[0] - hw, cy = 0;
+  for (let i = 0; i < 6; i++) { cy = Math.max(arcTop, farY(cx - hw)) + m + hh; cx = Math.min(C0[0] - hw, slantX(cy + hh) - m - hw); }
+  const bot = angleArcXZ(g.C, [-1, 0], [-Math.cos(g.ang), Math.sin(g.ang)], rb, 0, fmtDeg(g.bottom), 0);
+  bot.at = to3([cx, cy]);
   return [top, bot];
 }
 const fmtDeg = (v) => `${v.toFixed(1).replace(".", ",")}°`;
