@@ -79,6 +79,16 @@ export const spec = {
       { leader: true, curve: [], tip: [W - F + EAR_T / 2, 0, prof(p).a + EAR_H * 0.6], elbow: earElbow(p, O), text: `Ушко ${EAR_H}×${prof(p).a}` },
     ];
   },
+  /** при включённой галочке «№ заказа»: углы изгибов (выноски к внутренним углам) и длина наклонного профиля по его правой (наружной) грани */
+  orderDims(p, k = 1) {
+    const g = bendInfo(p), O = 45 * k, n = [Math.sin(g.ang), Math.cos(g.ang)];             // n — наружу от правой грани наклона (вверх-вправо)
+    const a3 = [g.G[0], 0, g.G[1]], b3 = [p.W, 0, 0];
+    return [
+      dimAB(a3, b3, [a3[0] + n[0] * O, 0, a3[2] + n[1] * O], [b3[0] + n[0] * O, 0, b3[2] + n[1] * O], `${Math.round(g.len)} мм`),
+      { leader: true, curve: [], tip: a3, elbow: [35 * k, 40 * k], text: fmtDeg(g.top) },
+      { leader: true, curve: [], tip: [g.C[0], 0, g.C[1]], elbow: bottomElbow(p, O), text: fmtDeg(g.bottom) },
+    ];
+  },
   textLines: (p) => ["Вешалка арт.1187", `Профиль ${prof(p).label} мм`, `Цвет: ${p.color}`, `Высота: ${p.H} мм`],
 };
 
@@ -96,4 +106,20 @@ function earElbow(p, O) {
     if (E[0] > xDim && E[0] + Lw < Math.min(slantX(E[1] - hgt), slantX(E[1] + hgt)) - 0.015 * H) return [dx, dy];
   }
   return [xDim - 0.04 * H - Lw - 0.04 * (H + 2 * O) - T[0], 60];
+}
+
+/** углы изгибов и длина наклонного участка. Длина — по правой грани наклона: от внутреннего угла верхнего изгиба (x = a) до нижнего правого угла;
+ *  на умолчаниях 406,9 → 407 мм (по левой грани было бы 380,7, по оси ≈ 394). Верхний угол = 90° + наклон к горизонтали, нижний = наклон. */
+export function bendInfo(p) {
+  const o = outline(p), deg = (o.ang * 180) / Math.PI;
+  return { ang: o.ang, G: o.G, C: o.C, top: 90 + deg, bottom: deg, len: Math.hypot(p.W - o.G[0], o.G[1]) };
+}
+const fmtDeg = (v) => `${v.toFixed(1).replace(".", ",")}°`;
+/** колено выноски нижнего угла: подпись слева от наклона, над лапкой и ниже подписи «Ушко» */
+function bottomElbow(p, O) {
+  const o = outline(p), { P2 } = makeView(VIEW.az, VIEW.el), a = o.a, S = p.H + 2 * O;
+  const T = P2(o.C[0], 0, o.C[1]), Lw = 0.075 * S, dy = 0.12 * S;
+  const s0 = P2(o.C[0], 0, a), s1 = P2(o.pts[1][0], 0, o.pts[1][1]);
+  const x = s0[0] + ((s1[0] - s0[0]) * (T[1] + dy - s0[1])) / (s1[1] - s0[1]);              // левая грань наклона на высоте колена
+  return [x - 0.02 * S - Lw - 0.03 * S - T[0], dy];
 }

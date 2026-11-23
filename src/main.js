@@ -195,7 +195,7 @@ $("show-len").onchange = () => request(0);
 $("show-rodlen").onchange = () => request(0);
 $("show-sway").onchange = () => request(0);
 // «№ заказа»: поле активно только при включённой галочке; номер — крупный заголовок чертежа
-$("show-order").onchange = () => { const on = $("show-order").checked; $("order-no").disabled = !on; if (on) $("order-no").focus(); if ($("order-no").value.trim()) request(0); };
+$("show-order").onchange = () => { const on = $("show-order").checked; $("order-no").disabled = !on; if (on) $("order-no").focus(); if ($("order-no").value.trim() || cur?.hasOrderDims) request(0); };
 $("order-no").oninput = () => request();                                  // «Показать метраж»: перерисовать с/без строки метража
 $("reset").onclick = () => { values = { ...cur.defaults }; buildControls(); request(0); };
 
@@ -207,7 +207,7 @@ async function pump() {
   const art = cur.id, snapshot = { ...values }, force = syncAll; syncAll = false;
   inflight = art; dirty = false; setStatus("считаю…", "busy");
   try {
-    const r = await call({ type: "draw", article: art, params: snapshot, showLen: $("show-len").checked, showRodLen: !$("show-rodlen-row").hidden && $("show-rodlen").checked, showSway: !$("show-sway-row").hidden && $("show-sway").checked, order: $("show-order").checked ? $("order-no").value : "" });
+    const r = await call({ type: "draw", article: art, params: snapshot, showLen: $("show-len").checked, showRodLen: !$("show-rodlen-row").hidden && $("show-rodlen").checked, showSway: !$("show-sway-row").hidden && $("show-sway").checked, order: $("show-order").checked ? $("order-no").value : "", orderOn: $("show-order").checked });
     if (!dirty && cur.id === art) show(r, force);
   } catch (e) { setStatus("ошибка: " + e.message, "err"); console.error(e); }
   finally { inflight = null; if (dirty) request(0); }
