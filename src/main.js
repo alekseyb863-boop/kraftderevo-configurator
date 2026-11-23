@@ -230,12 +230,14 @@ function show(r, force) {
 const setButtons = (on) => { for (const id of ["dl-png", "dl-pdf", "dl-stl"]) $(id).disabled = !on; };
 
 // ---------- скачивание ----------
+/** имя файла: при галочке «№ заказа» и непустом номере — сам номер (недопустимые в именах файлов символы / \ : * ? " < > | → «_»), иначе — обычное имя */
+function fileBase(def) { const v = $("order-no").value.trim(); return $("show-order").checked && v ? v.replace(/[\/\\:*?"<>|]/g, "_") : def; }
 function save(blob, name) { const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: name }); document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000); }
-$("dl-png").onclick = async () => { if (!last) return; setStatus("PNG…", "busy"); try { save(await svgToPngBlob(last.svg, last.W, last.H), last.name + ".png"); setStatus("PNG готов"); } catch (e) { setStatus("PNG: " + e.message, "err"); console.error(e); } };
-$("dl-pdf").onclick = async () => { if (!last) return; setStatus("PDF…", "busy"); try { save(await svgToPdfBlob(last.svg, last.W, last.H), last.name + ".pdf"); setStatus("PDF готов"); } catch (e) { setStatus("PDF: " + e.message, "err"); console.error(e); } };
+$("dl-png").onclick = async () => { if (!last) return; setStatus("PNG…", "busy"); try { save(await svgToPngBlob(last.svg, last.W, last.H), fileBase(last.name) + ".png"); setStatus("PNG готов"); } catch (e) { setStatus("PNG: " + e.message, "err"); console.error(e); } };
+$("dl-pdf").onclick = async () => { if (!last) return; setStatus("PDF…", "busy"); try { save(await svgToPdfBlob(last.svg, last.W, last.H), fileBase(last.name) + ".pdf"); setStatus("PDF готов"); } catch (e) { setStatus("PDF: " + e.message, "err"); console.error(e); } };
 $("dl-stl").onclick = async () => {
   if (!last) return; setStatus("STL…", "busy");
-  try { const r = await call({ type: "export", format: "stl", article: last.article, params: last.params }); save(new Blob([r.buffer], { type: "model/stl" }), r.name); setStatus("STL готов"); }
+  try { const r = await call({ type: "export", format: "stl", article: last.article, params: last.params }); save(new Blob([r.buffer], { type: "model/stl" }), fileBase(r.name.replace(/\.stl$/, "")) + ".stl"); setStatus("STL готов"); }
   catch (e) { setStatus("STL: " + e.message, "err"); }
 };
 setButtons(false);
