@@ -24,9 +24,11 @@ for (const [name, o] of [["desktop", { viewport: { width: 1500, height: 950 }, a
   await p.screenshot({ path: `${OUT}/ui_${name}_stoly_nozhki.png`, fullPage: name === "mobile" });
   await p.click('.leg-tiles .tile[data-article="TABLE_SHP3"]'); await wait(p, () => window.__configurator.last?.article === "TABLE_SHP3");
   ok(await p.evaluate(() => window.__configurator.last.params.tone) === "705_moreny_dub" && await st() === "top:false,legs:true", `${name}: смена ножек сохраняет столешницу и открытый блок`);
-  ok(await p.$eval("#view svg", (s) => !!s.querySelector("#paint polygon")), `${name}: ножки окрашены`);
-  await p.click('[data-key="paint"] input'); await wait(p, () => window.__configurator.last?.params.paint === false);
-  ok(await p.$eval("#view svg", (s) => !s.querySelector("#paint")), `${name}: без окрашивания — белые`);
+  ok(await p.$eval("#view svg", (s) => !s.querySelector("#paint") && !!s.querySelector('[data-text="Цвет ножек: Черный"]')), `${name}: по умолчанию без окрашивания — белые, в тексте «Цвет ножек: Черный»`);
+  await p.click('[data-key="paint"] input'); await wait(p, () => window.__configurator.last?.params.paint === true);
+  ok(await p.$eval("#view svg", (s) => !!s.querySelector("#paint path")), `${name}: с окрашиванием — ножки залиты`);
+  await p.click("#reset"); await wait(p, () => window.__configurator.last?.params.paint === false && window.__configurator.last?.params.legColor === "Черный");
+  ok(true, `${name}: «Сбросить» — Черный, без окрашивания`);
   if (name === "desktop") {
     for (const btn of ["#dl-png", "#dl-pdf", "#dl-stl"]) { const [d] = await Promise.all([p.waitForEvent("download", { timeout: 90000 }), p.click(btn)]); const f = `/tmp/${d.suggestedFilename()}`; await d.saveAs(f); ok(fs.statSync(f).size > 1000, `${name}: ${d.suggestedFilename()} ${fs.statSync(f).size} байт`); }
   }

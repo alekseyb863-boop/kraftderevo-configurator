@@ -6,7 +6,7 @@
 //   pair   — 2 плоские опоры (рама в плоскости XZ артикула, глубина +Y) у торцов, поперёк ширины; деталь «сзади» (площадка, боковая рама Н028) — внутрь стола;
 //   base   — подстолье целиком (Н114, Н098, Ёж): длина = L − 2·отступ по длине, ширина = W − 2·отступ по ширине, по центру под столешницей;
 //   corner — 4 угловые ножки (Шпилька 3 прутка): наружный угол уголка — в углу столешницы, смещён внутрь на оба отступа.
-// Окрашивание: при включённой галочке ножки на чертеже заливаются выбранным цветом (с освещением), иначе — белые (только линии).
+// Окрашивание (по умолчанию выключено): при включённой галочке ножки на чертеже заливаются выбранным цветом (с освещением), иначе — белые (только линии); в тексте цвет указывается всегда.
 // Отверстия ножек (окружности) на чертеже стола не рисуются.
 import { fuseAll, box, free } from "../lib/model.js";
 import { range, baseNormalize } from "../lib/params.js";
@@ -53,7 +53,7 @@ function makeTable({ leg: LS, kind, w, l, arm }) {
     { ...range("offW", "Отступ по ширине от края столешницы", 0, 500, 1, 0), group: "legs" },
     { ...range("offL", "Отступ по длине от края столешницы", 0, 1000, 1, 0), group: "legs" },
     { type: "select", key: "legColor", label: "Цвет", def: "Черный", unit: "", group: "legs", options: LEG_COLORS.map((c) => ({ value: c.id, label: c.id })) },
-    { type: "check", key: "paint", label: "Окрашивание", def: true, group: "legs" },
+    { type: "check", key: "paint", label: "Окрашивание", def: false, group: "legs" },
   ];
   const topCtls = TOP_CONTROLS.map((c) => ({ ...c, group: "top" }));
   const controls = [...topCtls, ...legCtls.filter((c) => !c.extra), ...tableCtls, ...legCtls.filter((c) => c.extra)];
@@ -130,7 +130,7 @@ function makeTable({ leg: LS, kind, w, l, arm }) {
     },
     textLines(p) {
       const pr = p.lp.profile && LS.textLines(p.lp).find((t) => /^Профиль /.test(t));
-      return ["Стол", ...topLines(p), `Ножки: ${legName}`, p.paint ? `Цвет ножек: ${p.legColor}` : "Цвет ножек: без окрашивания", ...(pr ? [pr.replace(/^Профиль /, "Профиль ножек: ")] : []), `Высота стола: ${p.legH + p.T} мм`];
+      return ["Стол", ...topLines(p), `Ножки: ${legName}`, `Цвет ножек: ${p.legColor}`, ...(pr ? [pr.replace(/^Профиль /, "Профиль ножек: ")] : []), `Высота стола: ${p.legH + p.T} мм`];
     },
   });
   return S;
