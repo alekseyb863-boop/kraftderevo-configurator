@@ -35,7 +35,7 @@ export function baseNormalize(controls, raw = {}) {
       const r = Math.min(c.max, Math.max(c.min, Math.round(v)));
       if (r !== Math.round(v) && Number.isFinite(Number(raw[c.key]))) warnings.push(`«${c.label}»: допустимо ${c.min}–${c.max} ${c.unit}, значение ${Math.round(v)} заменено на ${r}.`);
       v = r;
-    } else if (c.type === "select") {
+    } else if (c.type === "select" || c.type === "swatch") {
       if (!c.options.some((o) => o.value === v)) v = c.def;
     } else if (c.type === "check") {
       if (v === undefined || v === null || v === "") v = c.def;

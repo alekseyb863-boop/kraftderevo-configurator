@@ -38,7 +38,7 @@ try { worker = new Worker(new URL("./worker/cad.worker.js", import.meta.url), { 
 catch (e) { showError("не удалось создать фоновый поток (Web Worker): " + e.message + ". Нужен современный браузер (Chrome 80+/Safari 15+)."); }
 if (worker) {
   worker.onmessage = ({ data }) => {
-    if (data.type === "meta") { articles = data.articles; byId = Object.fromEntries(articles.map((a) => [a.id, a])); buildTiles(); selectArticle((location.hash.slice(1) in byId ? location.hash.slice(1) : articles[0].id)); return; }
+    if (data.type === "meta") { articles = data.articles; byId = Object.fromEntries(articles.map((a) => [a.id, a])); buildTiles(); const h = decodeURIComponent(location.hash.slice(1)); if (h === "tables") setTab("tables"); else if (h in byId) { tabArticle[byId[h].tab] = h; setTab(byId[h].tab); } else setTab("legs"); return; }
     if (data.type === "stage") return showProgress(data);
     if (data.type === "initerror") return showError(data.message + (data.stack ? "\n" + data.stack : ""));
     if (data.type === "ready") { ready = true; clearTimeout(watchdog); $("progress").hidden = true; $("diag").hidden = true; setStatus("готово"); request(0); return; }
@@ -55,6 +55,23 @@ addEventListener("error", (e) => { if (!ready && e.message) showError(e.message)
 addEventListener("unhandledrejection", (e) => { if (!ready) showError(String(e.reason && e.reason.message || e.reason)); });
 $("diag-copy").onclick = async () => { try { await navigator.clipboard.writeText($("diag-text").textContent); $("diag-copy").textContent = "Скопировано"; } catch { const r = document.createRange(); r.selectNodeContents($("diag-text")); getSelection().removeAllRanges(); getSelection().addRange(r); } };
 
+// ---------- вкладки: Ножки (каталог артикулов), Столешницы (параметрическая столешница без артикулов), Столы (позже) ----------
+let tab = "legs";
+const tabArticle = {};                                          // последний выбранный артикул на каждой вкладке
+function setTab(t) {
+  tab = t; document.body.className = "tab-" + t;
+  for (const b of document.querySelectorAll(".tabs .tab")) b.setAttribute("aria-selected", String(b.dataset.tab === t));
+  $("soon").hidden = t !== "tables"; $("tab-body").hidden = t === "tables";
+  const legs = t === "legs";
+  for (const id of ["tiles", "about"]) $(id).hidden = !legs;
+  document.querySelector(".search").hidden = !legs; if (!legs) $("search-empty").hidden = true; else applySearch();
+  $("show-len-row").hidden = t === "tops";
+  if (t === "tables") { cur = null; last = null; $("view").innerHTML = ""; setButtons(false); history.replaceState(null, "", "#tables"); return; }
+  const list = articles.filter((a) => a.tab === t), id = tabArticle[t] && byId[tabArticle[t]]?.tab === t ? tabArticle[t] : list[0]?.id;
+  if (id) selectArticle(id);
+}
+for (const b of document.querySelectorAll(".tabs .tab")) b.onclick = () => { if (b.dataset.tab !== tab) setTab(b.dataset.tab); };
+
 // ---------- плитки артикулов ----------
 function buildTiles() {
   const label = (a) => a.cardLabel ?? (a.name.startsWith(a.type + " ") ? a.name.slice(a.type.length + 1) : a.name);
@@ -64,8 +81,9 @@ function buildTiles() {
   const tile = (a) => a.cardTooltip
     ? `<button type="button" class="tile" role="radio" aria-checked="false" data-article="${a.id}" data-search="${esc(searchKey(a, label(a)))}" data-tip="${esc(a.cardTooltip.join("\n"))}" aria-description="${esc(a.cardTooltip.join(". "))}"><b>${label(a)}</b><small>${a.cardSubtitle ?? a.type}</small></button>`
     : `<button type="button" class="tile" role="radio" aria-checked="false" data-article="${a.id}" data-search="${esc(searchKey(a, label(a)))}" title="${a.about}"><b title="${label(a)}">${label(a)}</b><small>${a.cardSubtitle ?? a.type}</small></button>`;
-  const cats = [...new Set(articles.map((a) => a.category))];                       // категории — в порядке реестра: Ножки и опоры, Подстолья, Подстолья Круглые, Рейлы, Вешалки, Под раковины, Другое
-  $("tiles").innerHTML = cats.map((c) => `<section class="cat" data-category="${c}"><h2>${c}</h2><div class="tiles">${articles.filter((a) => a.category === c).map(tile).join("")}</div></section>`).join("");
+  const legs = articles.filter((a) => a.tab === "legs");                          // плитки — только вкладка «Ножки»
+  const cats = [...new Set(legs.map((a) => a.category))];                       // категории — в порядке реестра: Ножки и опоры, Подстолья, Подстолья Круглые, Рейлы, Вешалки, Под раковины, Другое
+  $("tiles").innerHTML = cats.map((c) => `<section class="cat" data-category="${c}"><h2>${c}</h2><div class="tiles">${legs.filter((a) => a.category === c).map(tile).join("")}</div></section>`).join("");
   for (const b of $("tiles").querySelectorAll(".tile")) b.onclick = () => selectArticle(b.dataset.article);
   for (const b of $("tiles").querySelectorAll(".tile[data-tip]")) {
     b.addEventListener("mouseenter", () => showTip(b)); b.addEventListener("focus", () => showTip(b));
@@ -112,7 +130,7 @@ window.addEventListener("scroll", hideTip, { capture: true, passive: true });
 window.addEventListener("touchmove", hideTip, { passive: true });
 document.addEventListener("pointerdown", (e) => { if (!tipEl.hidden && !e.target.closest?.(".tile[data-tip]")) hideTip(); }, { passive: true });
 function selectArticle(id) {
-  cur = byId[id]; values = { ...cur.defaults }; last = null;
+  cur = byId[id]; values = { ...cur.defaults }; last = null; tabArticle[cur.tab] = id;
   for (const b of $("tiles").querySelectorAll(".tile")) b.setAttribute("aria-checked", String(b.dataset.article === id));
   $("about").textContent = cur.about; history.replaceState(null, "", "#" + id);
   $("show-rodlen-row").hidden = !cur.hasRodLength;
@@ -145,9 +163,18 @@ function controlRow(c) {
     box.onchange = () => { values[c.key] = box.checked; applyDepends(); syncAll = true; request(0); };
   } else if (c.type === "select") {
     row.className = "row sel";
-    row.innerHTML = `<span>${c.label}</span><select aria-label="${c.label}">${c.options.map((o) => `<option value="${o.value}">${o.label} мм</option>`).join("")}</select>`;
+    const unit = c.unit ?? "мм";
+    row.innerHTML = `<span>${c.label}</span><select aria-label="${c.label}">${c.options.map((o) => `<option value="${o.value}">${o.label}${unit ? " " + unit : ""}</option>`).join("")}</select>`;
     const s = row.querySelector("select"); s.value = values[c.key];
     s.onchange = () => { values[c.key] = s.value; syncAll = true; request(0); };
+  } else if (c.type === "swatch") {
+    // выбор тона: сетка миниатюр текстур (первая — «Без текстуры», белый квадрат)
+    row.className = "row swatch";
+    const nm = (v) => (c.options.find((o) => o.value === v) || c.options[0]).label;
+    row.innerHTML = `<span>${c.label}: <b></b></span><div class="swatches" role="radiogroup" aria-label="${c.label}">${c.options.map((o) => `<button type="button" class="sw" role="radio" aria-checked="false" data-v="${o.value}" title="${o.label}"><i${o.thumb ? ` style="background-image:url('${BASE}${o.thumb}')"` : ""}></i><span>${o.label}</span></button>`).join("")}</div>`;
+    const mark = () => { row.querySelector("b").textContent = nm(values[c.key]); for (const b of row.querySelectorAll(".sw")) b.setAttribute("aria-checked", String(b.dataset.v === values[c.key])); };
+    for (const b of row.querySelectorAll(".sw")) b.onclick = () => { values[c.key] = b.dataset.v; mark(); syncAll = true; request(0); };
+    row.__mark = mark; mark();
   } else {
     row.className = "row txt";
     const dl = `dl-${c.key}`;
@@ -178,6 +205,7 @@ function buildControls() {
 function syncControls(p, force) {
   for (const row of $("controls").querySelectorAll("[data-key]")) {
     const k = row.dataset.key, box = row.querySelector("input[type=checkbox]");
+    if (row.__mark) { values[k] = p[k]; row.__mark(); continue; }
     if (box) {
       if (!force && document.activeElement === box) continue;
       values[k] = !!p[k]; box.checked = !!p[k];

@@ -13,6 +13,13 @@
   <details id="diag" class="diag" open hidden><summary>Диагностика (отправьте этот текст разработчику)</summary><pre id="diag-text"></pre><button type="button" id="diag-copy" class="secondary">Скопировать</button></details>
   <main>
     <form id="form" autocomplete="off" onsubmit="return false">
+      <div class="tabs" role="tablist" aria-label="Раздел">
+        <button type="button" class="tab" role="tab" data-tab="legs" aria-selected="true">Ножки</button>
+        <button type="button" class="tab" role="tab" data-tab="tops" aria-selected="false">Столешницы</button>
+        <button type="button" class="tab" role="tab" data-tab="tables" aria-selected="false">Столы</button>
+      </div>
+      <div id="soon" class="soon" hidden><b>Скоро</b><span>Здесь можно будет поставить ножки на столешницу.</span></div>
+      <div id="tab-body">
       <div class="search" role="search">
         <input type="text" id="search" placeholder="Поиск по форме или артикулу" aria-label="Поиск по форме или артикулу" autocomplete="off" spellcheck="false">
         <button type="button" id="search-clear" class="search-clear" aria-label="Очистить поиск" title="Очистить" hidden>×</button>
@@ -29,7 +36,7 @@
         <button type="button" id="reset" class="secondary">Сбросить</button>
       </div>
       <div class="opts">
-        <label class="showlen"><input type="checkbox" id="show-len"> Показать метраж</label>
+        <label class="showlen" id="show-len-row"><input type="checkbox" id="show-len"> Показать метраж</label>
         <label class="showlen" id="show-rodlen-row" hidden><input type="checkbox" id="show-rodlen"> Показать метраж прутка</label>
         <label class="showlen" id="show-sway-row" hidden title="Горизонтальное смещение верха под нагрузкой 20 кгс (с запасом ×3): 1–3 мм — норма, 4–6 — средне, 7 и больше — плохо"><input type="checkbox" id="show-sway"> Раскачка</label>
         <div class="order">
@@ -40,6 +47,7 @@
       <ul id="warnings" class="warnings" aria-live="polite"></ul>
       <p id="info" class="info err" role="alert" hidden></p>
       <div id="checks" hidden aria-hidden="true"></div>
+      </div>
     </form>
     <section id="view" aria-label="Чертёж"></section>
   </main>

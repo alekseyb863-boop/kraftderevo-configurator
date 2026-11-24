@@ -71,6 +71,17 @@ function build(article, raw) {
   const pieces = S.assembly ? S.parts(p) : null, solid = pieces ? assemble(pieces) : fuseAll(S.parts(p));
   return { S, p, warnings, solid, pieces };
 }
+// текстуры тонов (public/tex/<id>.jpg) -> data:URI: SVG чертежа самодостаточен (PNG через canvas и PDF не подгружают внешние картинки)
+const texCache = new Map();
+async function texUri(id) {
+  if (!texCache.has(id)) texCache.set(id, (async () => {
+    const b = await fetchBytes(new URL(`tex/${id}.jpg`, await basePromise).href, "Текстура…");
+    let bin = ""; for (let i = 0; i < b.length; i += 0x8000) bin += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000));
+    return "data:image/jpeg;base64," + btoa(bin);
+  })().catch((e) => { texCache.delete(id); throw e; }));
+  return texCache.get(id);
+}
+async function loadTextures(fills) { const ids = [...new Set(fills.map((f) => f.tex))]; return Object.fromEntries(await Promise.all(ids.map(async (id) => [id, await texUri(id)]))); }
 const sizeName = (S, p) => `${S.id}_${S.expectBBox(p).map((v) => Math.round(v)).join("x")}`;
 
 self.onmessage = async ({ data }) => {
@@ -82,7 +93,8 @@ self.onmessage = async ({ data }) => {
       const t0 = performance.now(), { S, p, warnings, solid, pieces } = build(data.article, data.params);
       try {
         const exp = S.expectBBox(p), chk = pieces ? checkAssembly(S.id, pieces, exp) : checkSolid(S.id, solid, exp);
-        const d = buildDrawing({ solid, view: S.view, layout: S.layout, makeDims: (k) => [...S.dims(p, k), ...(data.orderOn && S.orderDims ? S.orderDims(p, k) : [])], textLines: withOrder([...S.textLines(p), ...(data.showLen && S.profileLength ? [lengthLine(S.profileLength(p))] : []), ...(data.showRodLen && S.rodLengthLines ? S.rodLengthLines(p) : []), ...swayLines(S, p, data.showSway)], data.order), extra: S.extraLines ? S.extraLines(p) : [], marks: S.marks ? S.marks(p) : [], soft: !!S.softOverlap, hlr: S.hlr ? S.hlr(p) : null });
+        const fills = S.fills ? S.fills(p) : [], textures = await loadTextures(fills);
+        const d = buildDrawing({ fills, textures, solid, view: S.view, layout: S.layout, makeDims: (k) => [...S.dims(p, k), ...(data.orderOn && S.orderDims ? S.orderDims(p, k) : [])], textLines: withOrder([...S.textLines(p), ...(data.showLen && S.profileLength ? [lengthLine(S.profileLength(p))] : []), ...(data.showRodLen && S.rodLengthLines ? S.rodLengthLines(p) : []), ...swayLines(S, p, data.showSway)], data.order), extra: S.extraLines ? S.extraLines(p) : [], marks: S.marks ? S.marks(p) : [], soft: !!S.softOverlap, hlr: S.hlr ? S.hlr(p) : null });
         self.postMessage({ id, type: "drawn", article: S.id, svg: d.svg, W: d.W, H: d.H, check: d.check, adjust: d.adjust, params: p, warnings,
           bbox: chk.bbox, expectBBox: exp.map((v) => +v.toFixed(3)), solid: { solids: chk.solids, valid: chk.occValid, watertight: chk.watertight, bboxOK: chk.bboxOK, ok: chk.ok },
           name: sizeName(S, p), ms: Math.round(performance.now() - t0) });

@@ -26,9 +26,10 @@ import { spec as A0118 } from "./0118/model.js";
 import { spec as A0159 } from "./0159/model.js";
 import { spec as A0090 } from "./0090/model.js";
 import { spec as A0011 } from "./0011/model.js";
+import { spec as STOL } from "./STOL/model.js";
 // порядок: Ножки и опоры → Ножки-шпильки → Подстолья → Подстолья Круглые → Рейлы → Вешалки → Под раковины → Другое
-export const ARTICLES = [H031, H005, H050, H027_1, H112, H028, H030_2, H043, H038, A0090, A0011, H105, SHP3, H114, A0320, H098, YOZH, KONSOL, H091, A0118, A0159, V006_2, V004, VA012, A1187, VA008, TUMBA_KUH];
+export const ARTICLES = [H031, H005, H050, H027_1, H112, H028, H030_2, H043, H038, A0090, A0011, H105, SHP3, H114, A0320, H098, YOZH, KONSOL, H091, A0118, A0159, V006_2, V004, VA012, A1187, VA008, TUMBA_KUH, STOL];
 export const CATEGORIES = [...new Set(ARTICLES.map((s) => s.category))];
 export const BY_ID = Object.fromEntries(ARTICLES.map((s) => [s.id, s]));
 /** serialisable description of all articles for the UI (no functions) */
-export const meta = () => ARTICLES.map((s) => ({ id: s.id, type: s.type, category: s.category, name: s.name, about: s.about, cardLabel: s.cardLabel, cardSubtitle: s.cardSubtitle, cardTooltip: s.cardTooltip, hasRodLength: !!s.rodLengthLines, hasSway: !!s.sway, hasOrderDims: !!s.orderDims, controls: s.controls, defaults: s.normalize({}).p }));
+export const meta = () => ARTICLES.map((s) => ({ id: s.id, tab: s.tab || "legs", hasFills: !!s.fills, type: s.type, category: s.category, name: s.name, about: s.about, cardLabel: s.cardLabel, cardSubtitle: s.cardSubtitle, cardTooltip: s.cardTooltip, hasRodLength: !!s.rodLengthLines, hasSway: !!s.sway, hasOrderDims: !!s.orderDims, controls: s.controls, defaults: s.normalize({}).p }));

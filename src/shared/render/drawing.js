@@ -63,11 +63,11 @@ export const LAYOUTS = {
 const score = (r) => r.hdrVsLines + r.hdrVsDimSegs + r.hdrVsLabels + r.labelVsGeom + r.labelVsOtherDims + r.labelVsLabel + r.hdrVsHdr + r.outside.length;
 const f2 = (v) => +v.toFixed(2);
 
-export function svgString({ W, H, style, geom, built, header, extra = [], marks = [] }) {
+export function svgString({ W, H, style, geom, built, header, extra = [], marks = [], fillsSvg = "" }) {
   return `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
   <rect width="${W}" height="${H}" fill="#fff"/>
-  <g id="geometry" fill="none" stroke="#000" stroke-width="${f2(style.geomLW)}" stroke-linecap="round" stroke-linejoin="round">
+${fillsSvg}  <g id="geometry" fill="none" stroke="#000" stroke-width="${f2(style.geomLW)}" stroke-linecap="round" stroke-linejoin="round">
     ${geom.map((pl) => `<polyline points="${pl.map((p) => f2(p[0]) + "," + f2(p[1])).join(" ")}"/>`).join("\n    ")}
   </g>
 ${extra.length ? `  <g id="box" fill="none" stroke="#000" stroke-width="${f2(pt(0.7))}" stroke-linecap="round">
@@ -91,7 +91,31 @@ ${extra.length ? `  <g id="box" fill="none" stroke="#000" stroke-width="${f2(pt(
  * auto=false -> exactly one pass with the reference layout (what build.js uses so previews stay identical).
  * returns { svg, W, H, check, projection, header, adjust }
  */
-export function buildDrawing({ solid, view, layout, makeDims, textLines, auto = true, margin = 8, extra = [], marks = [], soft = false, hlr = null }) {
+/**
+ * Текстуры на гранях (под чёрными линиями модели): fills = [{ tex, o, u, v, lu, lv, n, shade, tile:[tu,tv] }] — плоская прямоугольная грань
+ * o + s·u + t·v (s ∈ [0,lu], t ∈ [0,lv], мм), n — наружная нормаль (рисуются только грани, обращённые к зрителю); textures = { id: href (data:URI) }.
+ * Параллельная проекция переводит грань аффинно: плитки текстуры (tile мм) ставятся в координатах грани, обрезка — по контуру грани в px;
+ * shade (0..1) — полупрозрачное затемнение боковых граней для объёма.
+ */
+export function texturesSvg(fills, textures, P2, N, toPx) {
+  const vis = fills.filter((F) => textures[F.tex] && F.n[0] * N[0] + F.n[1] * N[1] + F.n[2] * N[2] > 1e-6);
+  if (!vis.length) return "";
+  const at = (F, s, t) => toPx(P2(...F.o.map((x, i) => x + s * F.u[i] + t * F.v[i])));
+  const ids = [...new Set(vis.map((F) => F.tex))], defs = [], body = [];
+  ids.forEach((id, k) => defs.push(`<image id="tx${k}" xlink:href="${textures[id]}" href="${textures[id]}" x="0" y="0" width="1" height="1" preserveAspectRatio="none"/>`));
+  vis.forEach((F, j) => {
+    const p0 = at(F, 0, 0), pu = at(F, 1, 0), pv = at(F, 0, 1), k = ids.indexOf(F.tex), [tu, tv] = F.tile;
+    const poly = [at(F, 0, 0), at(F, F.lu, 0), at(F, F.lu, F.lv), at(F, 0, F.lv)].map((q) => f2(q[0]) + "," + f2(q[1])).join(" ");
+    defs.push(`<clipPath id="tc${j}"><polygon points="${poly}"/></clipPath>`);
+    const uses = [];
+    for (let s = 0; s < F.lu; s += tu) for (let t = 0; t < F.lv; t += tv) uses.push(`<use xlink:href="#tx${k}" href="#tx${k}" transform="translate(${f2(s)} ${f2(t)}) scale(${f2(tu + 3)} ${f2(tv + 3)})"/>`);
+    const m = [pu[0] - p0[0], pu[1] - p0[1], pv[0] - p0[0], pv[1] - p0[1], p0[0], p0[1]].map((x) => +x.toFixed(5));
+    body.push(`<g clip-path="url(#tc${j})"><g transform="matrix(${m.join(" ")})">${uses.join("")}</g>${F.shade ? `<polygon points="${poly}" fill="#000" fill-opacity="${F.shade}" stroke="none"/>` : ""}</g>`);
+  });
+  return `  <defs>\n    ${defs.join("\n    ")}\n  </defs>\n  <g id="texture">\n    ${body.join("\n    ")}\n  </g>\n`;
+}
+
+export function buildDrawing({ solid, view, layout, makeDims, textLines, auto = true, margin = 8, extra = [], marks = [], soft = false, hlr = null, fills = [], textures = {} }) {
   const proj = projectSolid(solid, view.az, view.el, hlr);
   const attempt = (layoutName, k, shrink, search) => {
     const dims = makeDims(k);
@@ -153,7 +177,7 @@ export function buildDrawing({ solid, view, layout, makeDims, textLines, auto = 
   // подписи на модели, на шапке, за краем страницы — по-прежнему ошибка
   const c0 = best.check, softOk = soft && !c0.ok && !c0.hdrVsLines && !c0.hdrVsDimSegs && !c0.hdrVsLabels && !c0.hdrVsHdr && !c0.labelVsGeom && !c0.outside.length && !c0.violatingLines.length;
   if (softOk) best.check = { ...c0, ok: true, soft: true, softConflicts: c0.labelVsLabel + c0.labelVsOtherDims };
-  const svg = svgString(best);
+  const svg = svgString({ ...best, fillsSvg: fills.length ? texturesSvg(fills, textures, proj.P2, proj.N, best.toPx) : "" });
   return { svg, W: best.W, H: best.H, toPx: best.toPx, P2: proj.P2, N: proj.N, check: best.check, projection: proj.checks, header: best.header,
     adjust: { attempts: n, layout: best.layoutName, offsetK: best.k, shrink: best.shrink, labelShifts: best.shifts.map(f2) } };
 }
