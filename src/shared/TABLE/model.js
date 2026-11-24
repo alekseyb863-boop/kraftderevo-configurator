@@ -118,16 +118,13 @@ function makeTable({ leg: LS, kind, w, l, arm, same }) {
   Object.assign(S, {
     view: { az: 32, el: 22 }, layout: "forms", auto: true,
     dims(p, k = 1) {
-      const { L, W, T, offL, offW, legH } = p, Z = legH + T, O = 70 * k, Os = 45 * k, Ow = O, Oh = offL > 0 ? O + 110 * k : O, out = [
+      // только основные размеры: длина, ширина, высота стола (отступы ножек от краёв на чертеже не показываются)
+      const { L, W, T, legH } = p, Z = legH + T, O = 70 * k;
+      return [
         dimAB([0, W, Z], [L, W, Z], [0, W, Z + O], [L, W, Z + O], `${L} мм`),
-        dimAB([L, 0, Z], [L, W, Z], [L + Ow, 0, Z], [L + Ow, W, Z], `${W} мм`),
-        dimAB([0, 0, 0], [0, 0, Z], [-Oh, 0, 0], [-Oh, 0, Z], `${Z} мм`),               // при отступе по длине — дальше, чтобы его подпись была между
+        dimAB([L, 0, Z], [L, W, Z], [L + O, 0, Z], [L + O, W, Z], `${W} мм`),
+        dimAB([0, 0, 0], [0, 0, Z], [-O, 0, 0], [-O, 0, Z], `${Z} мм`),
       ];
-      // отступы — под нижней кромкой столешницы, выносные линии вниз: по длине — у левого переднего угла, по ширине — у правого переднего
-      // подписи горизонтальные, не сдвигаются поиском: по длине — вниз-влево, по ширине — вправо (за торец)
-      if (offL > 0) out.push({ ...dimAB([0, 0, legH], [offL, 0, legH], [0, 0, legH - Os], [offL, 0, legH - Os], `${offL} мм`, 0, 0, { rot: "h", push: [[-0.6, 0, -1], 44 * k] }), fixed: k < 1.2 });
-      if (offW > 0) out.push({ ...dimAB([L, 0, legH], [L, offW, legH], [L, 0, legH - Os], [L, offW, legH - Os], `${offW} мм`, 0, 0, { rot: "h", push: [k > 1.2 ? [0.5, 0, -1] : [1, 0, 0], 62 * k] }), fixed: k < 1.2 });
-      return out;
     },
     textLines(p) {
       const pr = p.lp.profile && LS.textLines(p.lp).find((t) => /^Профиль /.test(t));
