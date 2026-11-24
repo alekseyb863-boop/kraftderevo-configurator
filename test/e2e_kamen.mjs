@@ -1,4 +1,4 @@
-// материал «Камень»: 2 тона, тон по умолчанию при смене материала, текст без «Тон», текстура на обеих вкладках: node test/e2e_kamen.mjs  -> OUT (/workspace/orders/stoleshnica/kamen)
+// материалы «Камень» (2 тона, без покрытия) и «Слэб» (1 тон, с покрытием): тон по умолчанию при смене материала, текст без «Тон», текстура на обеих вкладках: node test/e2e_kamen.mjs  -> OUT (/workspace/orders/stoleshnica/kamen)
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import { chromium, devices } from "playwright";
@@ -44,6 +44,19 @@ for (const [name, o] of [["desktop", { viewport: { width: 1500, height: 950 } }]
     await p.selectOption(`${sc} [data-key="species"] select`, "Ясень"); await last(() => window.__configurator.last?.params.species === "Ясень");
     ok((await p.evaluate(() => window.__configurator.last.params.tone)) === "705_12_dub" && (await vis(sc)).split(",").length === 12, `${name}/${tab}: обратно на дерево — тон по умолчанию, 12 тонов`);
     ok(await coatVis(sc) && (await p.$eval(`${sc} [data-key="coat"] select`, (s) => s.value)) === "Масло" && (await text()).includes("Покрытие: Масло"), `${name}/${tab}: обратно на дерево — «Покрытие» снова видно, значение прежнее (Масло)`);
+    // слэб: одна текстура «Слэб», «Покрытие» видно и пишется, «Тон» не пишется
+    await p.selectOption(`${sc} [data-key="species"] select`, "Слэб"); await last(() => window.__configurator.last?.params.species === "Слэб");
+    ok(await vis(sc) === "sleb" && (await p.evaluate(() => window.__configurator.last.params.tone)) === "sleb" && (await p.$eval(`${sc} [data-key="tone"] b`, (x) => x.textContent)) === "Слэб", `${name}/${tab}: у слэба одна миниатюра «Слэб», выбрана автоматически`);
+    ok(await p.$eval(`${sc} [data-key="tone"] .sw:not([hidden]) i`, (i) => i.style.backgroundImage.includes("tex/sleb/thumb_sleb")), `${name}/${tab}: миниатюра слэба`);
+    t = await text(); ok(t.includes("Материал: Слэб") && t.includes("Покрытие: Масло") && !t.includes("Тон"), `${name}/${tab}: «Материал: Слэб», «Покрытие: Масло», без «Тон»`);
+    ok(await coatVis(sc), `${name}/${tab}: у слэба поле «Покрытие» видно`);
+    ok(await p.evaluate(() => window.__configurator.last.params.texture) && await texHref() > 1000, `${name}/${tab}: текстура слэба в SVG`);
+    ok(await p.evaluate(() => window.__checks?.overlap ?? "OK") === "OK", `${name}/${tab}: слэб — текст не налезает на геометрию`);
+    if (name === "desktop") { await p.waitForTimeout(400); await p.screenshot({ path: `${OUT.replace(/kamen$/, "sleb")}/ui_${tab}_sleb.png` }); }
+    await p.click(`${sc} [data-key="texture"] input`); await last(() => window.__configurator.last?.params.texture === false);
+    ok(await texHref() === 0 && (await text()).includes("Материал: Слэб"), `${name}/${tab}: слэб без «Текстуры» — белое тело, текст тот же`);
+    await p.selectOption(`${sc} [data-key="species"] select`, "Дуб"); await last(() => window.__configurator.last?.params.species === "Дуб");
+    ok((await p.evaluate(() => window.__configurator.last.params.tone)) === "705_12_dub" && (await vis(sc)).split(",").length === 12, `${name}/${tab}: со слэба на дерево — тон по умолчанию, 12 тонов`);
   }
   ok(errs.length === 0, `${name}: ошибок консоли нет ${errs.join(" | ")}`);
 }
