@@ -25,8 +25,8 @@ export const STONE_TONES = [
   { id: "belyj", label: "Белый камень", tile: [800, 600] },
   { id: "temnyj", label: "Тёмный камень", tile: [1800, 1200] },
 ];
-/** слэб: одна текстура public/tex/sleb/sleb.jpg; одно фото ≈ 1200 × 663 мм, плитка 2×2 — 2400 × 1326 мм (столешница 1200×600 без повторов) */
-export const SLAB_TONES = [{ id: "sleb", label: "Слэб", tile: [2400, 1326] }];
+/** слэб: одна текстура public/tex/sleb/sleb.jpg (кадр 965×456 px); одно фото ≈ 1270 × 600 мм, плитка 2×2 — 2540 × 1200 мм (столешница 1200×600 без повторов) */
+export const SLAB_TONES = [{ id: "sleb", label: "Слэб", tile: [2540, 1200] }];
 const ALL_TONES = [...TONES, ...STONE_TONES, ...SLAB_TONES];
 /** группы тонов: дерево — 12 тонов, камень — 2, слэб — 1 */
 const TONE_GROUPS = { wood: TONES, stone: STONE_TONES, slab: SLAB_TONES };
