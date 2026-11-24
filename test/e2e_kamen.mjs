@@ -13,6 +13,7 @@ for (const [name, o] of [["desktop", { viewport: { width: 1500, height: 950 } }]
   const last = (f, a) => p.waitForFunction(f, a, { timeout: 90000 });
   const text = () => p.$eval("#view svg", (s) => [...s.querySelectorAll("[data-text]")].map((t) => t.dataset.text).join("|"));
   const vis = (sc) => p.$$eval(`${sc} [data-key="tone"] .sw`, (a) => a.filter((x) => !x.hidden).map((x) => x.dataset.v).join());
+  const coatVis = (sc) => p.$eval(`${sc} [data-key="coat"]`, (r) => !r.hidden && r.offsetParent !== null);
   const texHref = () => p.$eval("#view svg", (s) => (s.querySelector("defs image")?.getAttribute("href") || "").length);
   await p.goto(`http://localhost:${PORT}/`); await p.waitForSelector("#view svg", { timeout: 120000 });
   for (const [tab, art, sc] of [["tops", "STOL", "#controls"], ["tables", "TABLE_H098", 'details.acc[data-acc="top"]']]) {
@@ -22,21 +23,27 @@ for (const [name, o] of [["desktop", { viewport: { width: 1500, height: 950 } }]
     ok(lab === "Материал", `${name}/${tab}: подпись «${lab}»`);
     const t0 = await text(); ok(t0.includes("Материал: Дуб") && t0.includes("Тон: 705 1/2 Дуб") && !t0.includes("Порода"), `${name}/${tab}: по умолчанию «Материал: Дуб», «Тон» есть`);
     ok((await vis(sc)).split(",").length === 12, `${name}/${tab}: у дерева 12 тонов`);
+    ok(await coatVis(sc) && t0.includes("Покрытие: Лак"), `${name}/${tab}: у дерева «Покрытие» видно и на чертеже`);
+    await p.selectOption(`${sc} [data-key="coat"] select`, "Масло"); await last(() => window.__configurator.last?.params.coat === "Масло");
     await p.click(`${sc} .sw[data-v="827_oreh"]`); await last(() => window.__configurator.last?.params.tone === "827_oreh");
     await p.selectOption(`${sc} [data-key="species"] select`, "Камень"); await last(() => window.__configurator.last?.params.species === "Камень");
     ok(await vis(sc) === "belyj,temnyj", `${name}/${tab}: у камня 2 тона`);
     ok((await p.$eval(`${sc} [data-key="tone"] b`, (x) => x.textContent)) === "Белый камень" && (await p.evaluate(() => window.__configurator.last.params.tone)) === "belyj", `${name}/${tab}: тон по умолчанию — Белый камень`);
     ok(await p.$$eval(`${sc} [data-key="tone"] .sw:not([hidden]) i`, (a) => a.every((i) => i.style.backgroundImage.includes("tex/kamen/thumb_"))), `${name}/${tab}: миниатюры камня`);
-    let t = await text(); ok(t.includes("Материал: Камень") && !t.includes("Тон"), `${name}/${tab}: «Материал: Камень», без «Тон» (Текстура выкл.)`);
+    let t = await text(); ok(t.includes("Материал: Камень") && !t.includes("Тон") && !t.includes("Покрытие"), `${name}/${tab}: «Материал: Камень», без «Тон» и «Покрытие» (Текстура выкл.)`);
+    ok(!(await coatVis(sc)), `${name}/${tab}: у камня поле «Покрытие» скрыто`);
+    ok(await p.evaluate(() => window.__checks?.overlap ?? "OK") === "OK", `${name}/${tab}: текст не налезает на геометрию`);
     await p.click(`${sc} [data-key="texture"] input`); await last(() => window.__configurator.last?.params.texture);
     ok(await texHref() > 1000, `${name}/${tab}: текстура Белого камня в SVG`);
     if (name === "desktop") { await p.waitForTimeout(400); await p.screenshot({ path: `${OUT}/ui_${tab}_belyj.png` }); }
     await p.click(`${sc} .sw[data-v="temnyj"]`); await last(() => window.__configurator.last?.params.tone === "temnyj");
-    t = await text(); ok(t.includes("Материал: Камень") && !t.includes("Тон"), `${name}/${tab}: Тёмный камень — текст тот же`);
+    t = await text(); ok(t.includes("Материал: Камень") && !t.includes("Тон") && !t.includes("Покрытие"), `${name}/${tab}: Тёмный камень — текст тот же`);
+    ok(await p.evaluate(() => window.__configurator.last.check?.ok !== false), `${name}/${tab}: Тёмный камень — проверка чертежа OK`);
     ok(await texHref() > 1000, `${name}/${tab}: текстура Тёмного камня в SVG`);
     if (name === "desktop") { await p.waitForTimeout(400); await p.screenshot({ path: `${OUT}/ui_${tab}_temnyj.png` }); }
     await p.selectOption(`${sc} [data-key="species"] select`, "Ясень"); await last(() => window.__configurator.last?.params.species === "Ясень");
     ok((await p.evaluate(() => window.__configurator.last.params.tone)) === "705_12_dub" && (await vis(sc)).split(",").length === 12, `${name}/${tab}: обратно на дерево — тон по умолчанию, 12 тонов`);
+    ok(await coatVis(sc) && (await p.$eval(`${sc} [data-key="coat"] select`, (s) => s.value)) === "Масло" && (await text()).includes("Покрытие: Масло"), `${name}/${tab}: обратно на дерево — «Покрытие» снова видно, значение прежнее (Масло)`);
   }
   ok(errs.length === 0, `${name}: ошибок консоли нет ${errs.join(" | ")}`);
 }

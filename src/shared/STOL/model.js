@@ -46,7 +46,7 @@ export const TOP_CONTROLS = [
     groupBy: "species", groupOf: { [STONE]: "stone" }, groupDef: TONE_DEF,   // видимые тона зависят от материала (камень — 2 тона)
     options: [...TONES.map((t) => ({ group: "wood", ...t })), ...STONE_TONES.map((t) => ({ group: "stone", ...t }))].map((t) => ({ value: t.id, label: t.label, group: t.group, thumb: `tex/{dir}/thumb_${t.id}.jpg` })) },
   { type: "check", key: "texture", label: "Текстура", def: false },        // как «Окрашивание» у ножек: выключено — тело белое, тон только в тексте
-  { type: "select", key: "coat", label: "Покрытие", def: "Лак", unit: "", options: opts(COATINGS) },
+  { type: "select", key: "coat", label: "Покрытие", def: "Лак", unit: "", hideIf: { species: STONE }, options: opts(COATINGS) },   // у камня покрытия нет: поле скрыто, на чертеже не пишется
 ];
 export const toneLabel = (id) => (ALL_TONES.find((t) => t.id === id) || {}).label;
 
@@ -68,7 +68,7 @@ export function topFills(p, z0 = 0, white = false) {
   ];
 }
 /** строки текстового блока о столешнице (без заголовка) */
-export const topLines = (p) => [`Материал: ${p.species}`, ...(p.species === STONE ? [] : [`Тон: ${toneLabel(p.tone)}`]), `Покрытие: ${p.coat}`, `Длина: ${p.L} мм`, `Ширина: ${p.W} мм`, `Толщина: ${p.T} мм`];
+export const topLines = (p) => [`Материал: ${p.species}`, ...(p.species === STONE ? [] : [`Тон: ${toneLabel(p.tone)}`, `Покрытие: ${p.coat}`]), `Длина: ${p.L} мм`, `Ширина: ${p.W} мм`, `Толщина: ${p.T} мм`];
 
 export const spec = {
   id: "STOL", tab: "tops", type: "Столешница", category: "Столешницы", name: "Столешница", cardLabel: "Столешница",

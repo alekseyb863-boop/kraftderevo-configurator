@@ -146,6 +146,7 @@ function selectArticle(id) {
 function controlRow(c) {
   const row = document.createElement("div"); row.dataset.key = c.key;
   if (c.depends) row.dataset.depends = c.depends;
+  if (c.hideIf) row.__hideIf = c.hideIf;                                   // скрыть поле при значениях других полей (покрытие у камня)
   if (c.type === "range") {
     row.className = "row";
     row.innerHTML = `<span>${c.label}</span><input type="range" min="${c.min}" max="${c.max}" step="${c.step}" aria-label="${c.label}"><input type="number" min="${c.min}" max="${c.max}" step="${c.step}" aria-label="${c.label}, число"><span class="unit">${c.unit}</span>`;
@@ -170,7 +171,7 @@ function controlRow(c) {
     const unit = c.unit ?? "мм";
     row.innerHTML = `<span>${c.label}</span><select aria-label="${c.label}">${c.options.map((o) => `<option value="${o.value}">${o.label}${unit ? " " + unit : ""}</option>`).join("")}</select>`;
     const s = row.querySelector("select"); s.value = values[c.key];
-    s.onchange = () => { values[c.key] = s.value; refreshThumbs(); syncAll = true; request(0); };
+    s.onchange = () => { values[c.key] = s.value; refreshThumbs(); applyDepends(); syncAll = true; request(0); };
   } else if (c.type === "swatch") {
     // выбор тона: сетка миниатюр текстур выбранного материала
     row.className = "row swatch";
@@ -205,6 +206,7 @@ function controlRow(c) {
 function refreshThumbs() { for (const r of $("controls").querySelectorAll(".row.swatch")) r.__thumbs?.(); }
 function applyDepends() {
   for (const row of $("controls").querySelectorAll("[data-depends]")) row.hidden = !values[row.dataset.depends];
+  for (const row of $("controls").querySelectorAll(".row")) if (row.__hideIf) row.hidden = Object.entries(row.__hideIf).some(([k, v]) => values[k] === v);
 }
 // «Столы»: два раскрывающихся блока — «Столешница» и «Ножки»; открыт всегда ровно один (открытие одного закрывает другой)
 function buildTableControls(box) {
