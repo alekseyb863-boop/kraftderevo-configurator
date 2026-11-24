@@ -1,6 +1,6 @@
 // STOL «Столешница» — параметрическая столешница (прямоугольный брусок Длина × Ширина × Толщина). Вкладка «Столешницы», без артикулов.
 // Оси: X — длина, Y — ширина, Z — вверх; z = 0 — низ столешницы.
-// Тон: «без текстуры» (белое тело, чёрные линии) или одна из 12 текстур — на чертеже накладывается на видимые грани (spec.fills),
+// Тон: одна из 12 текстур (всегда выбрана, пишется на чертеже); галочка «Текстура» — накладывать ли её на видимые грани (spec.fills), иначе белое тело и чёрные линии;
 // волокна идут вдоль длины. Покрытие (лак/масло) на вид не влияет — только строка на чертеже.
 import { box } from "../lib/model.js";
 import { range, baseNormalize } from "../lib/params.js";
@@ -14,7 +14,6 @@ export const TONES = [
   ["825_oregon", "825 Орегон"], ["4_naturalny", "4 Натуральный"], ["821_zelenaya_trava", "821 Зелёная трава"], ["P6_ebenovoe", "Р6 Эбеновое дерево"],
   ["820_824_ryabina", "820 824 Рябина"], ["890_mahagon", "890 Махагон"], ["820_sliva", "820 Слива"], ["7108_palisandr", "7108 Палисандр"],
 ].map(([id, label]) => ({ id, label }));
-export const NO_TONE = "none";
 /** размер одной плитки текстуры на изделии, мм (вдоль волокон × поперёк) */
 export const TEX_MM = [1000, 780];
 
@@ -24,15 +23,16 @@ export const TOP_CONTROLS = [
   range("W", "Ширина", 200, 1200, 1, 600),
   { type: "select", key: "T", label: "Толщина", def: "40", options: [{ value: "20", label: "20" }, { value: "40", label: "40" }] },
   { type: "select", key: "species", label: "Порода", def: "Дуб", unit: "", options: opts(SPECIES) },
-  { type: "swatch", key: "tone", label: "Тон", def: NO_TONE, options: [{ value: NO_TONE, label: "Без текстуры", thumb: "" }, ...TONES.map((t) => ({ value: t.id, label: t.label, thumb: `tex/thumb_${t.id}.jpg` }))] },
+  { type: "swatch", key: "tone", label: "Тон", def: TONES[0].id, options: TONES.map((t) => ({ value: t.id, label: t.label, thumb: `tex/thumb_${t.id}.jpg` })) },
+  { type: "check", key: "texture", label: "Текстура", def: false },        // как «Окрашивание» у ножек: выключено — тело белое, тон только в тексте
   { type: "select", key: "coat", label: "Покрытие", def: "Лак", unit: "", options: opts(COATINGS) },
 ];
 export const toneLabel = (id) => (TONES.find((t) => t.id === id) || {}).label;
 
 const controls = TOP_CONTROLS;
-/** грани столешницы под текстуру (низ столешницы на высоте z0); white = true — при «без текстуры» грани заливаются белым (стол: столешница закрывает ножки) */
+/** грани столешницы под текстуру (низ столешницы на высоте z0); white = true — при выключенной «Текстуре» грани заливаются белым (стол: столешница закрывает ножки) */
 export function topFills(p, z0 = 0, white = false) {
-  const { L, W, T } = p, tex = p.tone === NO_TONE ? null : p.tone;
+  const { L, W, T } = p, tex = p.texture ? p.tone : null;
   if (!tex && !white) return [];
   const f = (o, u, v, lu, lv, n, shade) => ({ tex, color: tex ? null : "#fff", o, u, v, lu, lv, n, shade: tex ? shade : 0, tile: TEX_MM });
   const Z = z0 + T;
@@ -46,7 +46,7 @@ export function topFills(p, z0 = 0, white = false) {
   ];
 }
 /** строки текстового блока о столешнице (без заголовка) */
-export const topLines = (p) => [`Порода: ${p.species}`, p.tone === NO_TONE ? "Тон: без текстуры" : `Тон: ${toneLabel(p.tone)}`, `Покрытие: ${p.coat}`, `Длина: ${p.L} мм`, `Ширина: ${p.W} мм`, `Толщина: ${p.T} мм`];
+export const topLines = (p) => [`Порода: ${p.species}`, `Тон: ${toneLabel(p.tone)}`, `Покрытие: ${p.coat}`, `Длина: ${p.L} мм`, `Ширина: ${p.W} мм`, `Толщина: ${p.T} мм`];
 
 export const spec = {
   id: "STOL", tab: "tops", type: "Столешница", category: "Столешницы", name: "Столешница", cardLabel: "Столешница",

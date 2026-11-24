@@ -64,7 +64,7 @@ details.acc[open] > summary { background: #1d6fd1; color: #fff; } details.acc[op
 .acc-body { padding: 4px 12px 12px; }
 .leg-tiles { margin: 8px 0 6px; }
 .acc-body .row > span:first-child { line-height: 1.2; }
-.acc-body > .row.check { grid-template-columns: 112px 1fr; } .acc-body > .row.check input { width: 18px; height: 18px; margin: 0; justify-self: start; }
+.acc-body > .row.check, body.tab-tops #controls > .row.check { grid-template-columns: 112px 1fr; } .acc-body > .row.check input, body.tab-tops #controls > .row.check input { width: 18px; height: 18px; margin: 0; justify-self: start; }
 .row.swatch { grid-template-columns: 1fr; } .row.swatch > span:first-child b { font-weight: 600; }
 .swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 6px; }
 .sw { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 4px 3px 5px; border: 1px solid #ccc; border-radius: 6px; background: #fafafa; color: #222; font-size: 11px; line-height: 1.15; text-align: center; cursor: pointer; min-width: 0; }

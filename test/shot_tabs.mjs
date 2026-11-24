@@ -15,7 +15,7 @@ for (const [name, o] of [["desktop", { viewport: { width: 1500, height: 950 }, a
   await p.click('#tiles .tile[data-article="H098"]'); await p.waitForFunction(() => window.__configurator.last?.article === "H098", null, { timeout: 60000 }); ok(true, `${name}: H098`);
   await p.screenshot({ path: `${OUT}/ui_${name}_nozhki.png`, fullPage: name === "mobile" });
   await p.click('.tab[data-tab="tops"]'); await p.waitForFunction(() => window.__configurator.last?.article === "STOL", null, { timeout: 60000 });
-  await p.click('.sw[data-v="705_moreny_dub"]'); await p.waitForFunction(() => window.__configurator.last?.params.tone === "705_moreny_dub", null, { timeout: 60000 });
+  await p.click('.sw[data-v="705_moreny_dub"]'); await p.click('[data-key="texture"] input'); await p.waitForFunction(() => window.__configurator.last?.params.tone === "705_moreny_dub" && window.__configurator.last?.params.texture, null, { timeout: 60000 });
   ok(await p.$eval("#view svg", (s) => !!s.querySelector("#texture use") && s.querySelector("defs image")), `${name}: текстура в SVG`);
   await p.waitForTimeout(300);
   await p.screenshot({ path: `${OUT}/ui_${name}_stoleshnicy.png`, fullPage: name === "mobile" });

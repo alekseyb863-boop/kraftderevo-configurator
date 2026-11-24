@@ -14,7 +14,7 @@ for (const [name, o] of [["desktop", { viewport: { width: 1500, height: 950 }, a
   await p.click('.tab[data-tab="tables"]'); await wait(p, () => window.__configurator.last?.article === "TABLE_H098");
   const st = () => p.$$eval("details.acc", (d) => d.map((x) => x.dataset.acc + ":" + x.open).join(","));
   ok(await st() === "top:true,legs:false", `${name}: по умолчанию открыт блок «Столешница»: ${await st()}`);
-  await p.click('details.acc[data-acc="top"] .sw[data-v="705_moreny_dub"]'); await wait(p, () => window.__configurator.last?.params.tone === "705_moreny_dub");
+  await p.click('details.acc[data-acc="top"] .sw[data-v="705_moreny_dub"]'); await p.click('details.acc[data-acc="top"] [data-key="texture"] input'); await wait(p, () => window.__configurator.last?.params.tone === "705_moreny_dub" && window.__configurator.last?.params.texture);
   await p.click('details.acc[data-acc="legs"] summary'); await p.waitForTimeout(150);
   ok(await st() === "top:false,legs:true", `${name}: открыт «Ножки», «Столешница» закрыт: ${await st()}`);
   await p.click('details.acc[data-acc="legs"] summary'); await p.waitForTimeout(100);
