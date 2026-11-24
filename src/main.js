@@ -170,12 +170,18 @@ function controlRow(c) {
     const unit = c.unit ?? "мм";
     row.innerHTML = `<span>${c.label}</span><select aria-label="${c.label}">${c.options.map((o) => `<option value="${o.value}">${o.label}${unit ? " " + unit : ""}</option>`).join("")}</select>`;
     const s = row.querySelector("select"); s.value = values[c.key];
-    s.onchange = () => { values[c.key] = s.value; syncAll = true; request(0); };
+    s.onchange = () => { values[c.key] = s.value; refreshThumbs(); syncAll = true; request(0); };
   } else if (c.type === "swatch") {
     // выбор тона: сетка миниатюр текстур (первая — «Без текстуры», белый квадрат)
     row.className = "row swatch";
     const nm = (v) => (c.options.find((o) => o.value === v) || c.options[0]).label;
-    row.innerHTML = `<span>${c.label}: <b></b></span><div class="swatches" role="radiogroup" aria-label="${c.label}">${c.options.map((o) => `<button type="button" class="sw" role="radio" aria-checked="false" data-v="${o.value}" title="${o.label}"><i${o.thumb ? ` style="background-image:url('${BASE}${o.thumb}')"` : ""}></i><span>${o.label}</span></button>`).join("")}</div>`;
+    row.innerHTML = `<span>${c.label}: <b></b></span><div class="swatches" role="radiogroup" aria-label="${c.label}">${c.options.map((o) => `<button type="button" class="sw" role="radio" aria-checked="false" data-v="${o.value}" title="${o.label}"><i></i><span>${o.label}</span></button>`).join("")}</div>`;
+    // миниатюры: шаблон {dir} заменяется папкой текущего значения c.thumbBy (порода) — сетка обновляется при смене породы
+    const thumbs = () => {
+      const dir = c.thumbBy ? (c.thumbDir || {})[values[c.thumbBy]] ?? values[c.thumbBy] : "";
+      for (const b of row.querySelectorAll(".sw")) { const o = c.options.find((x) => x.value === b.dataset.v); b.querySelector("i").style.backgroundImage = o.thumb ? `url('${BASE}${o.thumb.replace("{dir}", dir)}')` : ""; }
+    };
+    row.__thumbs = thumbs; thumbs();
     const mark = () => { row.querySelector("b").textContent = nm(values[c.key]); for (const b of row.querySelectorAll(".sw")) b.setAttribute("aria-checked", String(b.dataset.v === values[c.key])); };
     for (const b of row.querySelectorAll(".sw")) b.onclick = () => { values[c.key] = b.dataset.v; mark(); syncAll = true; request(0); };
     row.__mark = mark; mark();
@@ -189,6 +195,8 @@ function controlRow(c) {
   }
   return row;
 }
+/** перерисовать миниатюры, зависящие от других полей (тон -> порода) */
+function refreshThumbs() { for (const r of $("controls").querySelectorAll(".row.swatch")) r.__thumbs?.(); }
 function applyDepends() {
   for (const row of $("controls").querySelectorAll("[data-depends]")) row.hidden = !values[row.dataset.depends];
 }
@@ -250,7 +258,7 @@ function syncControls(p, force) {
     if (String(p[k]) === String(values[k]) && !force) continue;
     values[k] = p[k]; el.value = p[k]; if (r) r.value = p[k];
   }
-  applyDepends();
+  refreshThumbs(); applyDepends();
 }
 $("show-len").onchange = () => request(0);
 $("show-rodlen").onchange = () => request(0);

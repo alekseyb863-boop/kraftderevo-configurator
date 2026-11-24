@@ -17,6 +17,12 @@ for (const [name, o] of [["desktop", { viewport: { width: 1500, height: 950 }, a
   await p.click('.tab[data-tab="tops"]'); await p.waitForFunction(() => window.__configurator.last?.article === "STOL", null, { timeout: 60000 });
   await p.click('.sw[data-v="705_moreny_dub"]'); await p.click('[data-key="texture"] input'); await p.waitForFunction(() => window.__configurator.last?.params.tone === "705_moreny_dub" && window.__configurator.last?.params.texture, null, { timeout: 60000 });
   ok(await p.$eval("#view svg", (s) => !!s.querySelector("#texture use") && s.querySelector("defs image")), `${name}: текстура в SVG`);
+  const thumbDirs = () => p.$$eval('[data-key="tone"] .sw i', (a) => [...new Set(a.map((i) => (i.style.backgroundImage.match(/tex\/(\w+)\//) || [])[1]))].join());
+  ok(await thumbDirs() === "dub", `${name}: миниатюры тонов — Дуб`);
+  await p.selectOption('[data-key="species"] select', "Сосна"); await p.waitForFunction(() => window.__configurator.last?.params.species === "Сосна", null, { timeout: 60000 });
+  ok(await thumbDirs() === "sosna", `${name}: миниатюры тонов сменились на Сосну`);
+  ok(await p.$eval("#view svg", (s) => s.querySelector("defs image")?.getAttribute("href")?.length > 1000), `${name}: текстура Сосны в SVG`);
+  await p.selectOption('[data-key="species"] select', "Дуб"); await p.waitForFunction(() => window.__configurator.last?.params.species === "Дуб", null, { timeout: 60000 });
   await p.waitForTimeout(300);
   await p.screenshot({ path: `${OUT}/ui_${name}_stoleshnicy.png`, fullPage: name === "mobile" });
   if (name === "desktop") {

@@ -7,8 +7,11 @@ import { range, baseNormalize } from "../lib/params.js";
 import { dimAB } from "../render/dimhelpers.js";
 
 export const SPECIES = ["Ясень", "Дуб", "Лиственница", "Сосна", "Бук"];
+/** папка текстур породы: public/tex/<папка>/<тон>.jpg и миниатюры public/tex/<папка>/thumb_<тон>.jpg */
+export const SPECIES_DIR = { "Ясень": "yasen", "Дуб": "dub", "Лиственница": "listvennica", "Сосна": "sosna", "Бук": "buk" };
+const texId = (p) => `${SPECIES_DIR[p.species] || "dub"}/${p.tone}`;
 export const COATINGS = ["Лак", "Масло"];
-/** тона: id = имя файла текстуры в public/tex/<id>.jpg (плитка 2×2 с зеркалированием, волокна по горизонтали), миниатюра — public/tex/thumb_<id>.jpg */
+/** тона: текстура зависит от пары (порода, тон) — public/tex/<папка породы>/<id>.jpg (плитка 2×2 с зеркалированием, волокна по горизонтали) */
 export const TONES = [
   ["705_12_dub", "705 1/2 Дуб"], ["705_moreny_dub", "705 Мореный дуб"], ["827_oreh", "827 Орех"], ["887_mokko", "887 Мокко"],
   ["825_oregon", "825 Орегон"], ["4_naturalny", "4 Натуральный"], ["821_zelenaya_trava", "821 Зелёная трава"], ["P6_ebenovoe", "Р6 Эбеновое дерево"],
@@ -23,7 +26,8 @@ export const TOP_CONTROLS = [
   range("W", "Ширина", 200, 1200, 1, 600),
   { type: "select", key: "T", label: "Толщина", def: "40", options: [{ value: "20", label: "20" }, { value: "40", label: "40" }] },
   { type: "select", key: "species", label: "Порода", def: "Дуб", unit: "", options: opts(SPECIES) },
-  { type: "swatch", key: "tone", label: "Тон", def: TONES[0].id, options: TONES.map((t) => ({ value: t.id, label: t.label, thumb: `tex/thumb_${t.id}.jpg` })) },
+  { type: "swatch", key: "tone", label: "Тон", def: TONES[0].id, thumbBy: "species", thumbDir: SPECIES_DIR,   // миниатюры меняются вместе с породой: {dir} -> папка выбранной породы
+    options: TONES.map((t) => ({ value: t.id, label: t.label, thumb: `tex/{dir}/thumb_${t.id}.jpg` })) },
   { type: "check", key: "texture", label: "Текстура", def: false },        // как «Окрашивание» у ножек: выключено — тело белое, тон только в тексте
   { type: "select", key: "coat", label: "Покрытие", def: "Лак", unit: "", options: opts(COATINGS) },
 ];
@@ -32,7 +36,7 @@ export const toneLabel = (id) => (TONES.find((t) => t.id === id) || {}).label;
 const controls = TOP_CONTROLS;
 /** грани столешницы под текстуру (низ столешницы на высоте z0); white = true — при выключенной «Текстуре» грани заливаются белым (стол: столешница закрывает ножки) */
 export function topFills(p, z0 = 0, white = false) {
-  const { L, W, T } = p, tex = p.texture ? p.tone : null;
+  const { L, W, T } = p, tex = p.texture ? texId(p) : null;
   if (!tex && !white) return [];
   const f = (o, u, v, lu, lv, n, shade) => ({ tex, color: tex ? null : "#fff", o, u, v, lu, lv, n, shade: tex ? shade : 0, tile: TEX_MM });
   const Z = z0 + T;
