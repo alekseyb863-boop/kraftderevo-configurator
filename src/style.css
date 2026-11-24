@@ -70,5 +70,6 @@ details.acc[open] > summary { background: #1d6fd1; color: #fff; } details.acc[op
 .sw { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 4px 3px 5px; border: 1px solid #ccc; border-radius: 6px; background: #fafafa; color: #222; font-size: 11px; line-height: 1.15; text-align: center; cursor: pointer; min-width: 0; }
 .sw i { display: block; width: 100%; aspect-ratio: 1; border-radius: 4px; border: 1px solid #ccc; background: #fff center / cover no-repeat; }
 .sw span { display: block; max-width: 100%; overflow-wrap: anywhere; }
+.sw[hidden] { display: none; }
 .sw:hover { border-color: #1d6fd1; } .sw[aria-checked=true] { border-color: #1d6fd1; box-shadow: 0 0 0 2px #1d6fd1 inset; background: #eaf2fd; }
 @media (max-width: 900px) { body.tab-tops #view { height: auto; min-height: 0; } body.tab-tops #view svg { width: 100%; height: auto; } header { flex-wrap: wrap; gap: 4px 12px; padding: 8px 12px; } .status { flex-basis: 100%; font-size: 13px; overflow-wrap: anywhere; } main { padding: 8px; } main { grid-template-columns: 1fr; } #view { position: static; height: 80vh; } }

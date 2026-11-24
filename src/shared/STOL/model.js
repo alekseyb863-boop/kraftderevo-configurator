@@ -6,9 +6,10 @@ import { box } from "../lib/model.js";
 import { range, baseNormalize } from "../lib/params.js";
 import { dimAB } from "../render/dimhelpers.js";
 
-export const SPECIES = ["Ясень", "Дуб", "Лиственница", "Сосна", "Бук"];
+export const SPECIES = ["Ясень", "Дуб", "Лиственница", "Сосна", "Бук", "Камень"];   // параметр «Материал» (ключ species оставлен для совместимости)
+export const STONE = "Камень";
 /** папка текстур породы: public/tex/<папка>/<тон>.jpg и миниатюры public/tex/<папка>/thumb_<тон>.jpg */
-export const SPECIES_DIR = { "Ясень": "yasen", "Дуб": "dub", "Лиственница": "listvennica", "Сосна": "sosna", "Бук": "buk" };
+export const SPECIES_DIR = { "Ясень": "yasen", "Дуб": "dub", "Лиственница": "listvennica", "Сосна": "sosna", "Бук": "buk", "Камень": "kamen" };
 const texId = (p) => `${SPECIES_DIR[p.species] || "dub"}/${p.tone}`;
 export const COATINGS = ["Лак", "Масло"];
 /** тона: текстура зависит от пары (порода, тон) — public/tex/<папка породы>/<id>.jpg (плитка 2×2 с зеркалированием, волокна по горизонтали) */
@@ -19,26 +20,43 @@ export const TONES = [
 ].map(([id, label]) => ({ id, label }));
 /** размер одной плитки текстуры на изделии, мм (вдоль волокон × поперёк) */
 export const TEX_MM = [1000, 780];
+/** тона камня: public/tex/kamen/<id>.jpg; tile — размер плитки 2×2 на изделии, мм (крошка терраццо 5–25 мм, прожилки мрамора — плита ~0,9 м в четверти плитки) */
+export const STONE_TONES = [
+  { id: "belyj", label: "Белый камень", tile: [800, 600] },
+  { id: "temnyj", label: "Тёмный камень", tile: [1800, 1200] },
+];
+const ALL_TONES = [...TONES, ...STONE_TONES];
+/** группа тонов материала: камень — только тона камня, дерево — 12 тонов */
+export const toneGroup = (species) => (species === STONE ? "stone" : "wood");
+const TONE_DEF = { wood: TONES[0].id, stone: STONE_TONES[0].id };
+/** тон недоступен для выбранного материала -> тон по умолчанию этого материала */
+export function fixTone(p) {
+  const g = toneGroup(p.species), ok = (g === "stone" ? STONE_TONES : TONES).some((t) => t.id === p.tone);
+  if (!ok) p.tone = TONE_DEF[g];
+  return p;
+}
 
 const opts = (list) => list.map((v) => ({ value: v, label: v }));
 export const TOP_CONTROLS = [
   range("L", "Длина", 300, 3000, 1, 1200),
   range("W", "Ширина", 200, 1200, 1, 600),
   { type: "select", key: "T", label: "Толщина", def: "40", options: [{ value: "20", label: "20" }, { value: "40", label: "40" }] },
-  { type: "select", key: "species", label: "Порода", def: "Дуб", unit: "", options: opts(SPECIES) },
+  { type: "select", key: "species", label: "Материал", def: "Дуб", unit: "", options: opts(SPECIES) },
   { type: "swatch", key: "tone", label: "Тон", def: TONES[0].id, thumbBy: "species", thumbDir: SPECIES_DIR,   // миниатюры меняются вместе с породой: {dir} -> папка выбранной породы
-    options: TONES.map((t) => ({ value: t.id, label: t.label, thumb: `tex/{dir}/thumb_${t.id}.jpg` })) },
+    groupBy: "species", groupOf: { [STONE]: "stone" }, groupDef: TONE_DEF,   // видимые тона зависят от материала (камень — 2 тона)
+    options: [...TONES.map((t) => ({ group: "wood", ...t })), ...STONE_TONES.map((t) => ({ group: "stone", ...t }))].map((t) => ({ value: t.id, label: t.label, group: t.group, thumb: `tex/{dir}/thumb_${t.id}.jpg` })) },
   { type: "check", key: "texture", label: "Текстура", def: false },        // как «Окрашивание» у ножек: выключено — тело белое, тон только в тексте
   { type: "select", key: "coat", label: "Покрытие", def: "Лак", unit: "", options: opts(COATINGS) },
 ];
-export const toneLabel = (id) => (TONES.find((t) => t.id === id) || {}).label;
+export const toneLabel = (id) => (ALL_TONES.find((t) => t.id === id) || {}).label;
 
 const controls = TOP_CONTROLS;
 /** грани столешницы под текстуру (низ столешницы на высоте z0); white = true — при выключенной «Текстуре» грани заливаются белым (стол: столешница закрывает ножки) */
 export function topFills(p, z0 = 0, white = false) {
   const { L, W, T } = p, tex = p.texture ? texId(p) : null;
   if (!tex && !white) return [];
-  const f = (o, u, v, lu, lv, n, shade) => ({ tex, color: tex ? null : "#fff", o, u, v, lu, lv, n, shade: tex ? shade : 0, tile: TEX_MM });
+  const tile = (STONE_TONES.find((t) => t.id === p.tone) || {}).tile || TEX_MM;   // торцы — тем же материалом
+  const f = (o, u, v, lu, lv, n, shade) => ({ tex, color: tex ? null : "#fff", o, u, v, lu, lv, n, shade: tex ? shade : 0, tile });
   const Z = z0 + T;
   return [
     f([0, 0, Z], [1, 0, 0], [0, 1, 0], L, W, [0, 0, 1], 0),
@@ -50,12 +68,12 @@ export function topFills(p, z0 = 0, white = false) {
   ];
 }
 /** строки текстового блока о столешнице (без заголовка) */
-export const topLines = (p) => [`Порода: ${p.species}`, `Тон: ${toneLabel(p.tone)}`, `Покрытие: ${p.coat}`, `Длина: ${p.L} мм`, `Ширина: ${p.W} мм`, `Толщина: ${p.T} мм`];
+export const topLines = (p) => [`Материал: ${p.species}`, ...(p.species === STONE ? [] : [`Тон: ${toneLabel(p.tone)}`]), `Покрытие: ${p.coat}`, `Длина: ${p.L} мм`, `Ширина: ${p.W} мм`, `Толщина: ${p.T} мм`];
 
 export const spec = {
   id: "STOL", tab: "tops", type: "Столешница", category: "Столешницы", name: "Столешница", cardLabel: "Столешница",
-  about: "Столешница из массива: длина, ширина, толщина 20 или 40 мм, порода, тон (текстура) и покрытие", controls,
-  normalize(raw) { const r = baseNormalize(controls, raw); r.p.T = Number(r.p.T); return r; },
+  about: "Столешница: длина, ширина, толщина 20 или 40 мм, материал (порода дерева или камень), тон (текстура) и покрытие", controls,
+  normalize(raw) { const r = baseNormalize(controls, raw); r.p.T = Number(r.p.T); fixTone(r.p); return r; },
   parts: (p) => [box(0, p.L, 0, p.W, 0, p.T)],
   expectBBox: (p) => [p.L, p.W, p.T],
   view: { az: 32, el: 28 }, layout: "wide", auto: true,

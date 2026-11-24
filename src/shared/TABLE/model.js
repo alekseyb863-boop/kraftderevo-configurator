@@ -11,7 +11,7 @@
 import { fuseAll, box, free } from "../lib/model.js";
 import { range, baseNormalize } from "../lib/params.js";
 import { dimAB } from "../render/dimhelpers.js";
-import { TOP_CONTROLS, topFills, topLines } from "../STOL/model.js";
+import { TOP_CONTROLS, topFills, topLines, fixTone } from "../STOL/model.js";
 import { spec as H031 } from "../H031/model.js";
 import { spec as H050 } from "../H050/model.js";
 import { spec as H028 } from "../H028/model.js";
@@ -64,7 +64,7 @@ function makeTable({ leg: LS, kind, w, l, arm, same }) {
     about: `Стол: столешница + ${legName}`, controls, legName,
     normalize(raw) {
       const warnings = [], { p } = baseNormalize([...topCtls, ...tableCtls], raw);
-      p.T = Number(p.T);
+      p.T = Number(p.T); fixTone(p);
       const maxW = Math.floor((p.W - 50) / 2), maxL = Math.floor(p.L / 2 - 50);
       if (p.offW > maxW) { warnings.push(`«Отступ по ширине»: ${p.offW} → ${maxW} мм (иначе ножка уже 50 мм).`); p.offW = maxW; }
       if (p.offL > maxL) { warnings.push(`«Отступ по длине»: ${p.offL} → ${maxL} мм.`); p.offL = maxL; }

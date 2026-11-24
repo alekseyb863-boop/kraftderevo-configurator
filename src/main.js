@@ -172,19 +172,25 @@ function controlRow(c) {
     const s = row.querySelector("select"); s.value = values[c.key];
     s.onchange = () => { values[c.key] = s.value; refreshThumbs(); syncAll = true; request(0); };
   } else if (c.type === "swatch") {
-    // выбор тона: сетка миниатюр текстур (первая — «Без текстуры», белый квадрат)
+    // выбор тона: сетка миниатюр текстур выбранного материала
     row.className = "row swatch";
     const nm = (v) => (c.options.find((o) => o.value === v) || c.options[0]).label;
     row.innerHTML = `<span>${c.label}: <b></b></span><div class="swatches" role="radiogroup" aria-label="${c.label}">${c.options.map((o) => `<button type="button" class="sw" role="radio" aria-checked="false" data-v="${o.value}" title="${o.label}"><i></i><span>${o.label}</span></button>`).join("")}</div>`;
-    // миниатюры: шаблон {dir} заменяется папкой текущего значения c.thumbBy (порода) — сетка обновляется при смене породы
+    // миниатюры: шаблон {dir} заменяется папкой текущего значения c.thumbBy (материал) — сетка обновляется при смене материала
     const thumbs = () => {
+      // набор тонов зависит от материала (c.groupBy): лишние скрыть, недоступный текущий тон -> тон по умолчанию материала
+      if (c.groupBy) {
+        const g = (c.groupOf || {})[values[c.groupBy]] || "wood";
+        for (const b of row.querySelectorAll(".sw")) b.hidden = (c.options.find((x) => x.value === b.dataset.v).group || "wood") !== g;
+        if (!c.options.some((o) => o.value === values[c.key] && (o.group || "wood") === g)) values[c.key] = c.groupDef[g];
+        mark();
+      }
       const dir = c.thumbBy ? (c.thumbDir || {})[values[c.thumbBy]] ?? values[c.thumbBy] : "";
       for (const b of row.querySelectorAll(".sw")) { const o = c.options.find((x) => x.value === b.dataset.v); b.querySelector("i").style.backgroundImage = o.thumb ? `url('${BASE}${o.thumb.replace("{dir}", dir)}')` : ""; }
     };
-    row.__thumbs = thumbs; thumbs();
     const mark = () => { row.querySelector("b").textContent = nm(values[c.key]); for (const b of row.querySelectorAll(".sw")) b.setAttribute("aria-checked", String(b.dataset.v === values[c.key])); };
     for (const b of row.querySelectorAll(".sw")) b.onclick = () => { values[c.key] = b.dataset.v; mark(); syncAll = true; request(0); };
-    row.__mark = mark; mark();
+    row.__mark = mark; row.__thumbs = thumbs; thumbs(); mark();
   } else {
     row.className = "row txt";
     const dl = `dl-${c.key}`;
