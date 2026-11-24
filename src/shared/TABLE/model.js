@@ -41,14 +41,15 @@ const LEGS = [
   { leg: H098, kind: "base", w: "D", l: "L" },
   { leg: YOZH, kind: "base", w: "D", l: "W" },
 ];
-const PFX = "leg_";
+const PFX = "leg_", LEG_H_DEF = 710;
 const rot = (s, a) => { if (!a) return s; const r = s.rotate(a, [0, 0, 0], [0, 0, 1]); free(s); return r; };
 const mov = (s, v) => { const r = s.translate(v); free(s); return r; };
 const bboxOf = (ss) => { const lo = [0, 1, 2].map((k) => Math.min(...ss.map((s) => s.boundingBox.bounds[0][k]))), hi = [0, 1, 2].map((k) => Math.max(...ss.map((s) => s.boundingBox.bounds[1][k]))); return [lo, hi]; };
 
 function makeTable({ leg: LS, kind, w, l, arm, same }) {
   const own = LS.controls.filter((c) => c.key !== w && c.key !== l && c.key !== "color");
-  const legCtls = own.map((c) => ({ ...c, key: PFX + c.key, group: "legs", ...(c.depends ? { depends: PFX + c.depends } : {}) }));
+  // высота ножек на вкладке «Столы» по умолчанию 710 мм (у всех 9 артикулов; на вкладке «Ножки» — свои значения)
+  const legCtls = own.map((c) => ({ ...c, key: PFX + c.key, group: "legs", ...(c.key === "H" ? { def: LEG_H_DEF } : {}), ...(c.depends ? { depends: PFX + c.depends } : {}) }));
   const tableCtls = [
     { ...range("offW", "Отступ по ширине от края столешницы", 0, 500, 1, 0), group: "legs" },
     { ...range("offL", "Отступ по длине от края столешницы", 0, 1000, 1, 0), group: "legs" },
@@ -68,7 +69,7 @@ function makeTable({ leg: LS, kind, w, l, arm, same }) {
       if (p.offW > maxW) { warnings.push(`«Отступ по ширине»: ${p.offW} → ${maxW} мм (иначе ножка уже 50 мм).`); p.offW = maxW; }
       if (p.offL > maxL) { warnings.push(`«Отступ по длине»: ${p.offL} → ${maxL} мм.`); p.offL = maxL; }
       const lr = { color: p.legColor };
-      for (const c of own) if (raw[PFX + c.key] !== undefined) lr[c.key] = raw[PFX + c.key];
+      for (const c of legCtls) { const v = raw[c.key] !== undefined ? raw[c.key] : c.def; if (v !== undefined) lr[c.key.slice(PFX.length)] = v; }   // нет значения — умолчание вкладки «Столы» (высота 710)
       if (w) lr[w] = p.W - 2 * p.offW;
       if (l) lr[l] = p.L - 2 * p.offL;
       const r = LS.normalize(lr);
