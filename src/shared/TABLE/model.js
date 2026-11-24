@@ -35,7 +35,7 @@ const LEGS = [
   { leg: H050, kind: "pair", w: "WT" },
   { leg: H028, kind: "pair", w: "W" },
   { leg: A0090, kind: "pair", w: "W" },
-  { leg: H105, kind: "pair", w: "WT" },
+  { leg: H105, kind: "pair", w: "WT", same: true },                     // Н105: правая опора — тот же поворот, что у левой (только перенос)
   { leg: SHP3, kind: "corner", w: null, arm: SHP3_ARM },
   { leg: H114, kind: "base", w: "W", l: "L" },
   { leg: H098, kind: "base", w: "D", l: "L" },
@@ -46,7 +46,7 @@ const rot = (s, a) => { if (!a) return s; const r = s.rotate(a, [0, 0, 0], [0, 0
 const mov = (s, v) => { const r = s.translate(v); free(s); return r; };
 const bboxOf = (ss) => { const lo = [0, 1, 2].map((k) => Math.min(...ss.map((s) => s.boundingBox.bounds[0][k]))), hi = [0, 1, 2].map((k) => Math.max(...ss.map((s) => s.boundingBox.bounds[1][k]))); return [lo, hi]; };
 
-function makeTable({ leg: LS, kind, w, l, arm }) {
+function makeTable({ leg: LS, kind, w, l, arm, same }) {
   const own = LS.controls.filter((c) => c.key !== w && c.key !== l && c.key !== "color");
   const legCtls = own.map((c) => ({ ...c, key: PFX + c.key, group: "legs", ...(c.depends ? { depends: PFX + c.depends } : {}) }));
   const tableCtls = [
@@ -86,7 +86,7 @@ function makeTable({ leg: LS, kind, w, l, arm }) {
       let legs = [];
       if (kind === "pair") {
         const cy = (lo, hi) => W / 2 - (lo[1] + hi[1]) / 2;
-        legs = [...place(one(), -90, (lo, hi) => [offL - lo[0], cy(lo, hi), -lo[2]]), ...place(one(), 90, (lo, hi) => [L - offL - hi[0], cy(lo, hi), -lo[2]])];
+        legs = [...place(one(), -90, (lo, hi) => [offL - lo[0], cy(lo, hi), -lo[2]]), ...place(one(), same ? -90 : 90, (lo, hi) => [L - offL - hi[0], cy(lo, hi), -lo[2]])];
       } else if (kind === "base") {
         legs = place(one(), 0, (lo, hi) => [L / 2 - (lo[0] + hi[0]) / 2, W / 2 - (lo[1] + hi[1]) / 2, -lo[2]]);
       } else {
