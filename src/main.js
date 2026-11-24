@@ -6,6 +6,7 @@ import { svgToPngBlob } from "./png.js";
 const $ = (id) => document.getElementById(id);
 const BASE = import.meta.env.BASE_URL;
 let articles = [], byId = {}, cur = null, values = {}, last = null, ready = false;
+let manual = new Set();                                                      // поля с auto, изменённые вручную (их умолчание больше не подставляется)
 let reqId = 0, inflight = null, dirty = false, timer = 0, syncAll = false;
 const pending = new Map();
 
@@ -135,6 +136,8 @@ function selectArticle(id) {
   cur = byId[id]; values = { ...cur.defaults }; last = null; tabArticle[cur.tab] = id;
   // «Столы»: при смене ножек столешница, отступы, цвет и окрашивание сохраняются
   if (keep) for (const c of cur.controls) if (!c.key.startsWith("leg_") && c.key in keep) values[c.key] = keep[c.key];
+  if (!keep) manual = new Set();
+  applyAuto();
   for (const b of $("tiles").querySelectorAll(".tile")) b.setAttribute("aria-checked", String(b.dataset.article === id));
   $("about").textContent = cur.about; history.replaceState(null, "", "#" + id);
   $("show-rodlen-row").hidden = !cur.hasRodLength;
@@ -153,8 +156,8 @@ function controlRow(c) {
     row.className = "row";
     row.innerHTML = `<span>${c.label}</span><input type="range" min="${c.min}" max="${c.max}" step="${c.step}" aria-label="${c.label}"><input type="number" min="${c.min}" max="${c.max}" step="${c.step}" aria-label="${c.label}, число"><span class="unit">${c.unit}</span>`;
     const [r, n] = row.querySelectorAll("input"); r.value = n.value = values[c.key];
-    r.oninput = () => { n.value = r.value; values[c.key] = Number(r.value); request(); };
-    n.oninput = () => { if (n.value === "" || !Number.isFinite(Number(n.value))) return; r.value = n.value; values[c.key] = Number(n.value); request(); };
+    r.oninput = () => { n.value = r.value; values[c.key] = Number(r.value); if (c.auto) manual.add(c.key); request(); };
+    n.oninput = () => { if (n.value === "" || !Number.isFinite(Number(n.value))) return; r.value = n.value; values[c.key] = Number(n.value); if (c.auto) manual.add(c.key); request(); };
     n.onchange = () => { if (n.value === "") n.value = values[c.key]; syncAll = true; request(0); };
     r.onchange = () => { syncAll = true; request(0); };
   } else if (c.type === "int") {
@@ -167,13 +170,13 @@ function controlRow(c) {
     row.className = "row check";
     row.innerHTML = `<span>${c.label}</span><input type="checkbox" aria-label="${c.label}">`;
     const box = row.querySelector("input"); box.checked = !!values[c.key];
-    box.onchange = () => { values[c.key] = box.checked; applyDepends(); syncAll = true; request(0); };
+    box.onchange = () => { values[c.key] = box.checked; applyAuto(); applyDepends(); syncAll = true; request(0); };
   } else if (c.type === "select") {
     row.className = "row sel";
     const unit = c.unit ?? "мм";
     row.innerHTML = `<span>${c.label}</span><select aria-label="${c.label}">${c.options.map((o) => `<option value="${o.value}">${o.label}${unit ? " " + unit : ""}</option>`).join("")}</select>`;
     const s = row.querySelector("select"); s.value = values[c.key];
-    s.onchange = () => { values[c.key] = s.value; refreshThumbs(); applyDepends(); syncAll = true; request(0); };
+    s.onchange = () => { values[c.key] = s.value; refreshThumbs(); applyAuto(); applyDepends(); syncAll = true; request(0); };
   } else if (c.type === "swatch") {
     // выбор тона: сетка миниатюр текстур выбранного материала
     row.className = "row swatch";
@@ -203,6 +206,18 @@ function controlRow(c) {
     t.onchange = () => { if (!t.value.trim()) { t.value = c.def; values[c.key] = c.def; request(0); } };
   }
   return row;
+}
+/** умолчания, зависящие от других полей (c.auto): отступы ножек 50 мм при живом крае слэба, иначе c.def; ручные значения не трогаются */
+function applyAuto() {
+  for (const c of cur.controls) {
+    if (!c.auto || manual.has(c.key)) continue;
+    const on = Object.entries(c.auto.when || {}).every(([k, v]) => values[k] === v) && (!c.auto.any || c.auto.any.some((k) => values[k]));
+    const v = on ? c.auto.value : c.def;
+    if (values[c.key] === v) continue;
+    values[c.key] = v;
+    const row = $("controls").querySelector(`[data-key="${c.key}"]`);
+    if (row) for (const el of row.querySelectorAll("input")) el.value = v;
+  }
 }
 /** перерисовать миниатюры, зависящие от других полей (тон -> порода) */
 function refreshThumbs() { for (const r of $("controls").querySelectorAll(".row.swatch")) r.__thumbs?.(); }
@@ -294,7 +309,7 @@ $("show-sway").onchange = () => request(0);
 // «№ заказа»: поле активно только при включённой галочке; номер — крупный заголовок чертежа
 $("show-order").onchange = () => { const on = $("show-order").checked; $("order-no").disabled = !on; if (on) $("order-no").focus(); if ($("order-no").value.trim() || cur?.hasOrderDims) request(0); };
 $("order-no").oninput = () => request();                                  // «Показать метраж»: перерисовать с/без строки метража
-$("reset").onclick = () => { values = { ...cur.defaults }; buildControls(); request(0); };
+$("reset").onclick = () => { values = { ...cur.defaults }; manual = new Set(); applyAuto(); buildControls(); request(0); };
 
 // ---------- перерисовка: debounce + «последний запрос побеждает» ----------
 function request(delay = 220) { clearTimeout(timer); timer = setTimeout(pump, delay); }

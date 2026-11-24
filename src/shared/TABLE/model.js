@@ -41,6 +41,8 @@ const LEGS = [
   { leg: H098, kind: "base", w: "D", l: "L" },
   { leg: YOZH, kind: "base", w: "D", l: "W" },
 ];
+/** «Живой край» у слэба: умолчание отступов ножек от краёв — 50 мм (не запрет: вручную можно меньше; ручное значение интерфейс не трогает) */
+const LIVE_AUTO = { when: { species: "Слэб" }, any: ["edgeL", "edgeB", "edgeF", "edgeR"], value: 50 };
 const PFX = "leg_", LEG_H_DEF = 710;
 const rot = (s, a) => { if (!a) return s; const r = s.rotate(a, [0, 0, 0], [0, 0, 1]); free(s); return r; };
 const mov = (s, v) => { const r = s.translate(v); free(s); return r; };
@@ -51,8 +53,8 @@ function makeTable({ leg: LS, kind, w, l, arm, same }) {
   // высота ножек на вкладке «Столы» по умолчанию 710 мм (у всех 9 артикулов; на вкладке «Ножки» — свои значения)
   const legCtls = own.map((c) => ({ ...c, key: PFX + c.key, group: "legs", ...(c.key === "H" ? { def: LEG_H_DEF } : {}), ...(c.depends ? { depends: PFX + c.depends } : {}) }));
   const tableCtls = [
-    { ...range("offW", "Отступ по ширине от края столешницы", 0, 500, 1, 0), group: "legs" },
-    { ...range("offL", "Отступ по длине от края столешницы", 0, 1000, 1, 0), group: "legs" },
+    { ...range("offW", "Отступ по ширине от края столешницы", 0, 500, 1, 0), group: "legs", auto: LIVE_AUTO },
+    { ...range("offL", "Отступ по длине от края столешницы", 0, 1000, 1, 0), group: "legs", auto: LIVE_AUTO },
     { type: "select", key: "legColor", label: "Цвет", def: "Черный", unit: "", group: "legs", options: LEG_COLORS.map((c) => ({ value: c.id, label: c.id })) },
     { type: "check", key: "paint", label: "Окрашивание", def: false, group: "legs" },
   ];
