@@ -57,17 +57,18 @@ $("diag-copy").onclick = async () => { try { await navigator.clipboard.writeText
 
 // ---------- вкладки: Ножки (каталог артикулов), Столешницы (параметрическая столешница без артикулов), Столы (позже) ----------
 let tab = "legs";
-const tabArticle = {};                                          // последний выбранный артикул на каждой вкладке
+const tabArticle = {};
+const TABLE_DEFAULT = "TABLE_H098";                             // вкладка «Столы»: ножки по умолчанию — подстолье Н098
+let accOpen = "top";                                            // «Столы»: открытый блок аккордеона (top | legs)                                          // последний выбранный артикул на каждой вкладке
 function setTab(t) {
   tab = t; document.body.className = "tab-" + t;
   for (const b of document.querySelectorAll(".tabs .tab")) b.setAttribute("aria-selected", String(b.dataset.tab === t));
-  $("soon").hidden = t !== "tables"; $("tab-body").hidden = t === "tables";
   const legs = t === "legs";
   for (const id of ["tiles", "about"]) $(id).hidden = !legs;
   document.querySelector(".search").hidden = !legs; if (!legs) $("search-empty").hidden = true; else applySearch();
-  $("show-len-row").hidden = t === "tops";
-  if (t === "tables") { cur = null; last = null; $("view").innerHTML = ""; setButtons(false); history.replaceState(null, "", "#tables"); return; }
-  const list = articles.filter((a) => a.tab === t), id = tabArticle[t] && byId[tabArticle[t]]?.tab === t ? tabArticle[t] : list[0]?.id;
+  $("show-len-row").hidden = t !== "legs";
+  $("params-h").hidden = t === "tables";
+  const list = articles.filter((a) => a.tab === t), id = tabArticle[t] && byId[tabArticle[t]]?.tab === t ? tabArticle[t] : t === "tables" && byId[TABLE_DEFAULT] ? TABLE_DEFAULT : list[0]?.id;
   if (id) selectArticle(id);
 }
 for (const b of document.querySelectorAll(".tabs .tab")) b.onclick = () => { if (b.dataset.tab !== tab) setTab(b.dataset.tab); };
@@ -130,7 +131,10 @@ window.addEventListener("scroll", hideTip, { capture: true, passive: true });
 window.addEventListener("touchmove", hideTip, { passive: true });
 document.addEventListener("pointerdown", (e) => { if (!tipEl.hidden && !e.target.closest?.(".tile[data-tip]")) hideTip(); }, { passive: true });
 function selectArticle(id) {
+  const prev = cur, keep = prev && prev.tab === "tables" && byId[id].tab === "tables" ? values : null;
   cur = byId[id]; values = { ...cur.defaults }; last = null; tabArticle[cur.tab] = id;
+  // «Столы»: при смене ножек столешница, отступы, цвет и окрашивание сохраняются
+  if (keep) for (const c of cur.controls) if (!c.key.startsWith("leg_") && c.key in keep) values[c.key] = keep[c.key];
   for (const b of $("tiles").querySelectorAll(".tile")) b.setAttribute("aria-checked", String(b.dataset.article === id));
   $("about").textContent = cur.about; history.replaceState(null, "", "#" + id);
   $("show-rodlen-row").hidden = !cur.hasRodLength;
@@ -186,11 +190,40 @@ function controlRow(c) {
   return row;
 }
 function applyDepends() {
-  const plate = !!values.plate;
-  for (const row of $("controls").querySelectorAll("[data-depends]")) row.hidden = row.dataset.depends === "plate" && !plate;
+  for (const row of $("controls").querySelectorAll("[data-depends]")) row.hidden = !values[row.dataset.depends];
+}
+// «Столы»: два раскрывающихся блока — «Столешница» и «Ножки»; открыт всегда ровно один (открытие одного закрывает другой)
+function buildTableControls(box) {
+  const mk = (key, title) => {
+    const d = document.createElement("details"); d.className = "acc"; d.dataset.acc = key; d.open = accOpen === key;
+    d.innerHTML = `<summary><span>${title}</span><i aria-hidden="true"></i></summary><div class="acc-body"></div>`;
+    d.querySelector("summary").addEventListener("click", (e) => {
+      e.preventDefault();
+      if (accOpen === key) return;                                  // открытый блок не закрывается щелчком — всегда открыт один
+      accOpen = key; for (const x of box.querySelectorAll("details.acc")) x.open = x.dataset.acc === key;
+    });
+    box.append(d); return d.querySelector(".acc-body");
+  };
+  const top = mk("top", "Столешница"), legs = mk("legs", "Ножки");
+  for (const c of cur.controls.filter((c) => c.group === "top")) top.append(controlRow(c));
+  const tables = articles.filter((a) => a.tab === "tables"), esc = (x) => String(x).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+  const grid = document.createElement("div"); grid.className = "tiles leg-tiles"; grid.setAttribute("role", "radiogroup"); grid.setAttribute("aria-label", "Ножки");
+  grid.innerHTML = tables.map((a) => `<button type="button" class="tile" role="radio" aria-checked="${a.id === cur.id}" data-article="${a.id}" title="${esc(a.about)}"><b>${esc(a.cardLabel)}</b><small>${esc(a.cardSubtitle ?? "")}</small></button>`).join("");
+  for (const b of grid.querySelectorAll(".tile")) b.onclick = () => { if (b.dataset.article !== cur.id) selectArticle(b.dataset.article); };
+  legs.append(grid);
+  const lc = cur.controls.filter((c) => c.group === "legs"), main = lc.filter((c) => !c.extra), extra = lc.filter((c) => c.extra);
+  for (const c of main) legs.append(controlRow(c));
+  if (extra.length) {
+    const det = document.createElement("details"); det.className = "extra"; det.open = false;
+    det.innerHTML = "<summary>Дополнительно</summary>";
+    for (const c of extra) det.append(controlRow(c));
+    legs.append(det);
+  }
+  box.querySelector('details.acc[data-acc="legs"] summary span').textContent = "Ножки: " + cur.cardLabel;
 }
 function buildControls() {
   const box = $("controls"); box.innerHTML = "";
+  if (cur.tab === "tables") { buildTableControls(box); applyDepends(); return; }
   const main = cur.controls.filter((c) => !c.extra), extra = cur.controls.filter((c) => c.extra);
   for (const c of main) box.append(controlRow(c));
   if (extra.length) {

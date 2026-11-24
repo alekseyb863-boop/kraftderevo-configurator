@@ -27,8 +27,8 @@ for (const [name, o] of [["desktop", { viewport: { width: 1500, height: 950 }, a
     await p.check("#show-order"); await p.fill("#order-no", "123/45"); await p.waitForTimeout(800);
     const [d] = await Promise.all([p.waitForEvent("download", { timeout: 60000 }), p.click("#dl-png")]); ok(d.suggestedFilename() === "123_45.png", `${name}: имя по № заказа: ${d.suggestedFilename()}`);
   }
-  await p.click('.tab[data-tab="tables"]'); await p.waitForTimeout(200);
-  ok(await p.isVisible("#soon"), `${name}: Столы — «Скоро»`);
+  await p.click('.tab[data-tab="tables"]'); await p.waitForFunction(() => window.__configurator.last?.article === "TABLE_H098", null, { timeout: 60000 });
+  ok(await p.isVisible("details.acc"), `${name}: Столы — блоки «Столешница» / «Ножки»`);
   await p.screenshot({ path: `${OUT}/ui_${name}_stoly.png` });
   await p.click('.tab[data-tab="legs"]'); await p.waitForFunction(() => window.__configurator.last?.article === "H098", null, { timeout: 60000 }); ok(true, `${name}: назад в Ножки — H098`);
   ok(errs.length === 0, `${name}: ошибок консоли нет ${errs.join(" | ")}`);

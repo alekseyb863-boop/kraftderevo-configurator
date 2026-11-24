@@ -55,8 +55,16 @@ button.tile[aria-checked=true] { background: #1d6fd1; color: #fff; border-color:
 .tabs { display: flex; gap: 4px; margin: 14px 0 0; border-bottom: 2px solid #1d6fd1; }
 .tabs .tab { flex: 1 1 0; padding: 9px 6px; border-radius: 6px 6px 0 0; background: #eef2f7; color: #335; font-weight: 600; font-size: 14px; border: 1px solid #d4dce7; border-bottom: 0; }
 .tabs .tab:hover { background: #dfe8f5; } .tabs .tab[aria-selected=true] { background: #1d6fd1; color: #fff; border-color: #1d6fd1; }
-.soon { display: flex; flex-direction: column; gap: 6px; padding: 28px 8px; text-align: center; color: #666; } .soon b { font-size: 22px; color: #222; }
-body.tab-tables #view { display: none; } body.tab-tables main { grid-template-columns: minmax(0, 520px); }
+details.acc { margin: 10px 0 0; border: 1px solid #d4dce7; border-radius: 8px; background: #fff; overflow: hidden; }
+details.acc + details.acc { margin-top: 8px; }
+details.acc > summary { list-style: none; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 11px 12px; cursor: pointer; font-weight: 650; font-size: 15px; background: #eef2f7; user-select: none; }
+details.acc > summary::-webkit-details-marker { display: none; }
+details.acc > summary i { width: 9px; height: 9px; border-right: 2px solid #557; border-bottom: 2px solid #557; transform: rotate(45deg); margin-top: -4px; transition: transform .15s; }
+details.acc[open] > summary { background: #1d6fd1; color: #fff; } details.acc[open] > summary i { transform: rotate(225deg); margin-top: 4px; border-color: #fff; }
+.acc-body { padding: 4px 12px 12px; }
+.leg-tiles { margin: 8px 0 6px; }
+.acc-body .row > span:first-child { line-height: 1.2; }
+.acc-body > .row.check { grid-template-columns: 112px 1fr; } .acc-body > .row.check input { width: 18px; height: 18px; margin: 0; justify-self: start; }
 .row.swatch { grid-template-columns: 1fr; } .row.swatch > span:first-child b { font-weight: 600; }
 .swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 6px; }
 .sw { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 4px 3px 5px; border: 1px solid #ccc; border-radius: 6px; background: #fafafa; color: #222; font-size: 11px; line-height: 1.15; text-align: center; cursor: pointer; min-width: 0; }

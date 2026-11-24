@@ -2,14 +2,19 @@
 // Orthographic projection: the model is tessellated, every triangle is projected to the screen (mm, y up) and keeps the depth (dot(N, p), larger = closer
 // to the viewer).  For a dimension line given by its two 3D end points the visible parameter intervals are exactly computed (linear constraints), so the
 // output stays vector (just fewer / shorter <line> elements).
-export function makeOccluder(solid, P2, N, tolerance = 0.1) {
-  const m = solid.mesh({ tolerance, angularTolerance: 0.1 }), V = m.vertices, tris = [];
+// coarse (необязательно): грубая сетка (угловой допуск 0.35) и без треугольников, обращённых от зрителя (замкнутые тела: их всегда закрывают лицевые) — для больших сборок (столы)
+export function makeOccluder(solid, P2, N, tolerance = 0.1, coarse = false) {
+  const m = solid.mesh({ tolerance, angularTolerance: coarse ? 0.35 : 0.1 }), V = m.vertices, tris = [];
   const dep = (i) => N[0] * V[3 * i] + N[1] * V[3 * i + 1] + N[2] * V[3 * i + 2];
   for (let k = 0; k < m.triangles.length; k += 3) {
     const ids = [m.triangles[k], m.triangles[k + 1], m.triangles[k + 2]];
     const p = ids.map((i) => P2(V[3 * i], V[3 * i + 1], V[3 * i + 2])), d = ids.map(dep);
     const det = (p[1][0] - p[0][0]) * (p[2][1] - p[0][1]) - (p[2][0] - p[0][0]) * (p[1][1] - p[0][1]);
     if (Math.abs(det) < 1e-9) continue;                                   // edge-on triangle: covers no area on the screen
+    if (coarse) {                                                         // нормаль треугольника (сетка ориентирована наружу) · N <= 0 — тыльный
+      const P = ids.map((i) => [V[3 * i], V[3 * i + 1], V[3 * i + 2]]), u = P[1].map((x, j) => x - P[0][j]), v = P[2].map((x, j) => x - P[0][j]);
+      if ((u[1] * v[2] - u[2] * v[1]) * N[0] + (u[2] * v[0] - u[0] * v[2]) * N[1] + (u[0] * v[1] - u[1] * v[0]) * N[2] <= 0) continue;
+    }
     tris.push({ p, d, det, bb: [Math.min(p[0][0], p[1][0], p[2][0]), Math.min(p[0][1], p[1][1], p[2][1]), Math.max(p[0][0], p[1][0], p[2][0]), Math.max(p[0][1], p[1][1], p[2][1])] });
   }
   return { tris, N, depth: (q) => N[0] * q[0] + N[1] * q[1] + N[2] * q[2] };

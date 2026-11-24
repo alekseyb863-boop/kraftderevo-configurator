@@ -98,24 +98,60 @@ ${extra.length ? `  <g id="box" fill="none" stroke="#000" stroke-width="${f2(pt(
  * shade (0..1) — полупрозрачное затемнение боковых граней для объёма.
  */
 export function texturesSvg(fills, textures, P2, N, toPx) {
-  const vis = fills.filter((F) => textures[F.tex] && F.n[0] * N[0] + F.n[1] * N[1] + F.n[2] * N[2] > 1e-6);
+  const vis = fills.filter((F) => (F.color || textures[F.tex]) && F.n[0] * N[0] + F.n[1] * N[1] + F.n[2] * N[2] > 1e-6);
   if (!vis.length) return "";
+  // порядок: сначала дальние грани (по глубине центра), чтобы ближние их перекрывали
+  const dep = (F) => { const c = F.o.map((x, i) => x + (F.lu * F.u[i] + F.lv * F.v[i]) / 2); return c[0] * N[0] + c[1] * N[1] + c[2] * N[2]; };
+  vis.sort((a, b) => dep(a) - dep(b));
   const at = (F, s, t) => toPx(P2(...F.o.map((x, i) => x + s * F.u[i] + t * F.v[i])));
-  const ids = [...new Set(vis.map((F) => F.tex))], defs = [], body = [];
+  const ids = [...new Set(vis.filter((F) => !F.color).map((F) => F.tex))], defs = [], body = [];
   ids.forEach((id, k) => defs.push(`<image id="tx${k}" xlink:href="${textures[id]}" href="${textures[id]}" x="0" y="0" width="1" height="1" preserveAspectRatio="none"/>`));
   vis.forEach((F, j) => {
     const p0 = at(F, 0, 0), pu = at(F, 1, 0), pv = at(F, 0, 1), k = ids.indexOf(F.tex), [tu, tv] = F.tile;
     const poly = [at(F, 0, 0), at(F, F.lu, 0), at(F, F.lu, F.lv), at(F, 0, F.lv)].map((q) => f2(q[0]) + "," + f2(q[1])).join(" ");
+    if (F.color) { body.push(`<polygon points="${poly}" fill="${F.color}" stroke="${F.color}" stroke-width="0.6"/>`); return; }
     defs.push(`<clipPath id="tc${j}"><polygon points="${poly}"/></clipPath>`);
     const uses = [];
     for (let s = 0; s < F.lu; s += tu) for (let t = 0; t < F.lv; t += tv) uses.push(`<use xlink:href="#tx${k}" href="#tx${k}" transform="translate(${f2(s)} ${f2(t)}) scale(${f2(tu + 3)} ${f2(tv + 3)})"/>`);
     const m = [pu[0] - p0[0], pu[1] - p0[1], pv[0] - p0[0], pv[1] - p0[1], p0[0], p0[1]].map((x) => +x.toFixed(5));
     body.push(`<g clip-path="url(#tc${j})"><g transform="matrix(${m.join(" ")})">${uses.join("")}</g>${F.shade ? `<polygon points="${poly}" fill="#000" fill-opacity="${F.shade}" stroke="none"/>` : ""}</g>`);
   });
-  return `  <defs>\n    ${defs.join("\n    ")}\n  </defs>\n  <g id="texture">\n    ${body.join("\n    ")}\n  </g>\n`;
+  return `${defs.length ? `  <defs>\n    ${defs.join("\n    ")}\n  </defs>\n` : ""}  <g id="texture">\n    ${body.join("\n    ")}\n  </g>\n`;
 }
 
-export function buildDrawing({ solid, view, layout, makeDims, textLines, auto = true, margin = 8, extra = [], marks = [], soft = false, hlr = null, fills = [], textures = {} }) {
+/**
+ * Окраска тел (ножки стола): треугольники сетки, обращённые к зрителю, мелко делятся и рисуются от дальних к ближним (алгоритм художника);
+ * цвет — между dark и light по освещённости грани. paint = { shapes, dark:[r,g,b], light:[r,g,b] }.
+ */
+export function paintSvg(paint, P2, N, toPx, { maxEdge = 150, light = [-0.45, -0.6, 0.66] } = {}) {
+  const sub = (a, b) => a.map((x, i) => x - b[i]), mid = (a, b) => a.map((x, i) => (x + b[i]) / 2), dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]], len = (a) => Math.hypot(...a);
+  const Ln = (() => { const n = len(light); return light.map((x) => x / n); })(), tris = [];
+  const split = (a, b, c, nrm) => {
+    const e = [len(sub(b, a)), len(sub(c, b)), len(sub(a, c))], mx = Math.max(...e);
+    if (mx <= maxEdge) { tris.push([a, b, c, nrm]); return; }
+    const i = e.indexOf(mx), [p, q, r] = i === 0 ? [a, b, c] : i === 1 ? [b, c, a] : [c, a, b], h = mid(p, q);
+    split(p, h, r, nrm); split(h, q, r, nrm);
+  };
+  for (const s of paint.shapes) {
+    const m = s.mesh({ tolerance: 1, angularTolerance: 0.6 }), V = (i) => [m.vertices[3 * i], m.vertices[3 * i + 1], m.vertices[3 * i + 2]];
+    for (let t = 0; t < m.triangles.length; t += 3) {
+      const a = V(m.triangles[t]), b = V(m.triangles[t + 1]), c = V(m.triangles[t + 2]), n = cross(sub(b, a), sub(c, a)), l = len(n);
+      if (l < 1e-9) continue;
+      const nn = n.map((x) => x / l);
+      if (dot(nn, N) <= 1e-6) continue;
+      split(a, b, c, nn);
+    }
+  }
+  tris.sort((x, y) => dot(N, x[0].map((v, i) => v + x[1][i] + x[2][i])) - dot(N, y[0].map((v, i) => v + y[1][i] + y[2][i])));
+  const out = tris.map(([a, b, c, n]) => {
+    const k = Math.max(0, Math.min(1, 0.45 + 0.55 * dot(n, Ln))), col = `rgb(${paint.dark.map((d, i) => Math.round(d + (paint.light[i] - d) * k)).join(",")})`;
+    return `<polygon points="${[a, b, c].map((p) => toPx(P2(...p)).map(f2).join(",")).join(" ")}" fill="${col}" stroke="${col}" stroke-width="0.8" stroke-linejoin="round"/>`;
+  });
+  return `  <g id="paint">\n    ${out.join("\n    ")}\n  </g>\n`;
+}
+
+export function buildDrawing({ solid, view, layout, makeDims, textLines, auto = true, margin = 8, extra = [], marks = [], soft = false, hlr = null, fills = [], textures = {}, paint = null }) {
   const proj = projectSolid(solid, view.az, view.el, hlr);
   const attempt = (layoutName, k, shrink, search) => {
     const dims = makeDims(k);
@@ -135,7 +171,7 @@ export function buildDrawing({ solid, view, layout, makeDims, textLines, auto = 
       for (let pass = 0; pass < 3 && !cur.check.ok; pass++) {
         let improved = false;
         dims.forEach((d, i) => {
-          if (d.leader || d.arc) return;                                   // выноски и угловые размеры не сдвигаются
+          if (d.leader || d.arc || d.fixed) return;                        // выноски, угловые размеры и размеры с fixed не сдвигаются
           const base = d.shift || 0, a = toPx(proj.P2(...d.a)), b = toPx(proj.P2(...d.b)), Ln = Math.hypot(b[0] - a[0], b[1] - a[1]);
           const range = Ln / 2 + 120, cands = [shifts[i]];
           for (let s = 0; s <= range * 2; s += 12) { cands.push(base + s, base - s); }
@@ -177,7 +213,7 @@ export function buildDrawing({ solid, view, layout, makeDims, textLines, auto = 
   // подписи на модели, на шапке, за краем страницы — по-прежнему ошибка
   const c0 = best.check, softOk = soft && !c0.ok && !c0.hdrVsLines && !c0.hdrVsDimSegs && !c0.hdrVsLabels && !c0.hdrVsHdr && !c0.labelVsGeom && !c0.outside.length && !c0.violatingLines.length;
   if (softOk) best.check = { ...c0, ok: true, soft: true, softConflicts: c0.labelVsLabel + c0.labelVsOtherDims };
-  const svg = svgString({ ...best, fillsSvg: fills.length ? texturesSvg(fills, textures, proj.P2, proj.N, best.toPx) : "" });
+  const svg = svgString({ ...best, fillsSvg: (paint ? paintSvg(paint, proj.P2, proj.N, best.toPx) : "") + (fills.length ? texturesSvg(fills, textures, proj.P2, proj.N, best.toPx) : "") });
   return { svg, W: best.W, H: best.H, toPx: best.toPx, P2: proj.P2, N: proj.N, check: best.check, projection: proj.checks, header: best.header,
     adjust: { attempts: n, layout: best.layoutName, offsetK: best.k, shrink: best.shrink, labelShifts: best.shifts.map(f2) } };
 }

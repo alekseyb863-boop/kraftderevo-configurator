@@ -36,7 +36,7 @@ export function projectSolid(solid, azDeg, elDeg, hlr = null) {
   const view = makeView(azDeg, elDeg), { N, RIGHT, P2 } = view;
   const camera = new R.ProjectionCamera(N.map((x) => x * 5000), N, RIGHT);
   let lines, sharp = null;
-  if (!hlr) {
+  if (!hlr || (hlr.smooth !== false && !hlr.dropSharpIn)) {                                 // hlr только с occTol — обычная проекция
     const { visible, hidden } = R.drawProjection(solid, camera);
     lines = drawingPolylines(visible);
     for (const d of [visible, hidden]) { try { d && d.delete(); } catch { /* already freed */ } }
@@ -59,8 +59,10 @@ export function projectSolid(solid, azDeg, elDeg, hlr = null) {
   const shift = [rb[0] - db[0], rb[1] - db[1]];
   lines = lines.map((pl) => pl.map((p) => [p[0] + shift[0], p[1] + shift[1]]));
   if (sharp && hlr.dropSharpIn) {                                                       // острые рёбра внутри зоны — убрать (силуэты не трогаем)
-    const [a, b] = hlr.dropSharpIn, inside = inHull(hull2([0, 1].flatMap((i) => [0, 1].flatMap((j) => [0, 1].map((k) => P2(i ? b[0] : a[0], j ? b[1] : a[1], k ? b[2] : a[2]))))));
-    lines = lines.filter((pl, i) => i >= sharp.length || !pl.every(inside));
+    // один бокс [[x0,y0,z0],[x1,y1,z1]] или список боксов
+    const boxes = Array.isArray(hlr.dropSharpIn[0][0]) ? hlr.dropSharpIn : [hlr.dropSharpIn];
+    const ins = boxes.map(([a, b]) => inHull(hull2([0, 1].flatMap((i) => [0, 1].flatMap((j) => [0, 1].map((k) => P2(i ? b[0] : a[0], j ? b[1] : a[1], k ? b[2] : a[2])))))));
+    lines = lines.filter((pl, i) => i >= sharp.length || !ins.some((inside) => pl.every(inside)));
   }
   // mirror/orientation check: each extreme model vertex (min/max x, min/max y) must coincide with a visible line end point
   const ends = lines.flatMap((pl) => [pl[0], pl[pl.length - 1]]);
@@ -75,5 +77,5 @@ export function projectSolid(solid, azDeg, elDeg, hlr = null) {
   // curved edges are drawn as 48-point polylines and the reference mesh is tessellated (0.1 mm): their extents may differ by a fraction of a mm
   const tolE = curves.length ? 1 : 0.05;
   if (Math.abs(err[0]) > tolE || Math.abs(err[1]) > tolE || !extremeOK) throw new Error("replicad projection does not match reference camera: " + JSON.stringify(checks));
-  return { lines, P2, N, checks, occ: makeOccluder(solid, P2, N) };
+  return { lines, P2, N, checks, occ: makeOccluder(solid, P2, N, (hlr && hlr.occTol) || 0.1, !!(hlr && hlr.occTol)) };
 }

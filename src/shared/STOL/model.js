@@ -19,7 +19,7 @@ export const NO_TONE = "none";
 export const TEX_MM = [1000, 780];
 
 const opts = (list) => list.map((v) => ({ value: v, label: v }));
-const controls = [
+export const TOP_CONTROLS = [
   range("L", "Длина", 300, 3000, 1, 1200),
   range("W", "Ширина", 200, 1200, 1, 600),
   { type: "select", key: "T", label: "Толщина", def: "40", options: [{ value: "20", label: "20" }, { value: "40", label: "40" }] },
@@ -27,7 +27,26 @@ const controls = [
   { type: "swatch", key: "tone", label: "Тон", def: NO_TONE, options: [{ value: NO_TONE, label: "Без текстуры", thumb: "" }, ...TONES.map((t) => ({ value: t.id, label: t.label, thumb: `tex/thumb_${t.id}.jpg` }))] },
   { type: "select", key: "coat", label: "Покрытие", def: "Лак", unit: "", options: opts(COATINGS) },
 ];
-const toneLabel = (id) => (TONES.find((t) => t.id === id) || {}).label;
+export const toneLabel = (id) => (TONES.find((t) => t.id === id) || {}).label;
+
+const controls = TOP_CONTROLS;
+/** грани столешницы под текстуру (низ столешницы на высоте z0); white = true — при «без текстуры» грани заливаются белым (стол: столешница закрывает ножки) */
+export function topFills(p, z0 = 0, white = false) {
+  const { L, W, T } = p, tex = p.tone === NO_TONE ? null : p.tone;
+  if (!tex && !white) return [];
+  const f = (o, u, v, lu, lv, n, shade) => ({ tex, color: tex ? null : "#fff", o, u, v, lu, lv, n, shade: tex ? shade : 0, tile: TEX_MM });
+  const Z = z0 + T;
+  return [
+    f([0, 0, Z], [1, 0, 0], [0, 1, 0], L, W, [0, 0, 1], 0),
+    f([0, 0, z0], [1, 0, 0], [0, 0, 1], L, T, [0, -1, 0], 0.14),
+    f([0, W, z0], [1, 0, 0], [0, 0, 1], L, T, [0, 1, 0], 0.14),
+    f([L, 0, z0], [0, 1, 0], [0, 0, 1], W, T, [1, 0, 0], 0.24),
+    f([0, 0, z0], [0, 1, 0], [0, 0, 1], W, T, [-1, 0, 0], 0.24),
+    f([0, 0, z0], [1, 0, 0], [0, 1, 0], L, W, [0, 0, -1], 0.3),
+  ];
+}
+/** строки текстового блока о столешнице (без заголовка) */
+export const topLines = (p) => [`Порода: ${p.species}`, p.tone === NO_TONE ? "Тон: без текстуры" : `Тон: ${toneLabel(p.tone)}`, `Покрытие: ${p.coat}`, `Длина: ${p.L} мм`, `Ширина: ${p.W} мм`, `Толщина: ${p.T} мм`];
 
 export const spec = {
   id: "STOL", tab: "tops", type: "Столешница", category: "Столешницы", name: "Столешница", cardLabel: "Столешница",
@@ -37,18 +56,7 @@ export const spec = {
   expectBBox: (p) => [p.L, p.W, p.T],
   view: { az: 32, el: 28 }, layout: "wide", auto: true,
   /** грани под текстуру: o — угол, u — вдоль волокон (вдоль длины; на торцах — вдоль ширины), v — поперёк, n — наружная нормаль, shade — затемнение боковых граней */
-  fills(p) {
-    if (p.tone === NO_TONE) return [];
-    const { L, W, T } = p, f = (o, u, v, lu, lv, n, shade) => ({ tex: p.tone, o, u, v, lu, lv, n, shade, tile: TEX_MM });
-    return [
-      f([0, 0, T], [1, 0, 0], [0, 1, 0], L, W, [0, 0, 1], 0),
-      f([0, 0, 0], [1, 0, 0], [0, 0, 1], L, T, [0, -1, 0], 0.14),
-      f([0, W, 0], [1, 0, 0], [0, 0, 1], L, T, [0, 1, 0], 0.14),
-      f([L, 0, 0], [0, 1, 0], [0, 0, 1], W, T, [1, 0, 0], 0.24),
-      f([0, 0, 0], [0, 1, 0], [0, 0, 1], W, T, [-1, 0, 0], 0.24),
-      f([0, 0, 0], [1, 0, 0], [0, 1, 0], L, W, [0, 0, -1], 0.3),
-    ];
-  },
+  fills: (p) => topFills(p),
   dims(p, k = 1) {
     const { L, W, T } = p, O = 60 * k, Ot = 40 * k;
     return [
@@ -57,6 +65,5 @@ export const spec = {
       dimAB([0, 0, 0], [0, 0, T], [-Ot, 0, 0], [-Ot, 0, T], `${T} мм`, 0, 1),
     ];
   },
-  textLines: (p) => ["Столешница", `Порода: ${p.species}`, p.tone === NO_TONE ? "Тон: без текстуры" : `Тон: ${toneLabel(p.tone)}`, `Покрытие: ${p.coat}`,
-    `Длина: ${p.L} мм`, `Ширина: ${p.W} мм`, `Толщина: ${p.T} мм`],
+  textLines: (p) => ["Столешница", ...topLines(p)],
 };

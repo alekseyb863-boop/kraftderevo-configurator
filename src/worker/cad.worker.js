@@ -81,7 +81,7 @@ async function texUri(id) {
   })().catch((e) => { texCache.delete(id); throw e; }));
   return texCache.get(id);
 }
-async function loadTextures(fills) { const ids = [...new Set(fills.map((f) => f.tex))]; return Object.fromEntries(await Promise.all(ids.map(async (id) => [id, await texUri(id)]))); }
+async function loadTextures(fills) { const ids = [...new Set(fills.filter((f) => f.tex).map((f) => f.tex))]; return Object.fromEntries(await Promise.all(ids.map(async (id) => [id, await texUri(id)]))); }
 const sizeName = (S, p) => `${S.id}_${S.expectBBox(p).map((v) => Math.round(v)).join("x")}`;
 
 self.onmessage = async ({ data }) => {
@@ -94,7 +94,7 @@ self.onmessage = async ({ data }) => {
       try {
         const exp = S.expectBBox(p), chk = pieces ? checkAssembly(S.id, pieces, exp) : checkSolid(S.id, solid, exp);
         const fills = S.fills ? S.fills(p) : [], textures = await loadTextures(fills);
-        const d = buildDrawing({ fills, textures, solid, view: S.view, layout: S.layout, makeDims: (k) => [...S.dims(p, k), ...(data.orderOn && S.orderDims ? S.orderDims(p, k) : [])], textLines: withOrder([...S.textLines(p), ...(data.showLen && S.profileLength ? [lengthLine(S.profileLength(p))] : []), ...(data.showRodLen && S.rodLengthLines ? S.rodLengthLines(p) : []), ...swayLines(S, p, data.showSway)], data.order), extra: S.extraLines ? S.extraLines(p) : [], marks: S.marks ? S.marks(p) : [], soft: !!S.softOverlap, hlr: S.hlr ? S.hlr(p) : null });
+        const d = buildDrawing({ fills, textures, paint: S.paint ? S.paint(p, pieces || [solid]) : null, solid, view: S.view, layout: S.layout, makeDims: (k) => [...S.dims(p, k), ...(data.orderOn && S.orderDims ? S.orderDims(p, k) : [])], textLines: withOrder([...S.textLines(p), ...(data.showLen && S.profileLength ? [lengthLine(S.profileLength(p))] : []), ...(data.showRodLen && S.rodLengthLines ? S.rodLengthLines(p) : []), ...swayLines(S, p, data.showSway)], data.order), extra: S.extraLines ? S.extraLines(p) : [], marks: S.marks ? S.marks(p) : [], soft: !!S.softOverlap, hlr: S.hlr ? S.hlr(p) : null });
         self.postMessage({ id, type: "drawn", article: S.id, svg: d.svg, W: d.W, H: d.H, check: d.check, adjust: d.adjust, params: p, warnings,
           bbox: chk.bbox, expectBBox: exp.map((v) => +v.toFixed(3)), solid: { solids: chk.solids, valid: chk.occValid, watertight: chk.watertight, bboxOK: chk.bboxOK, ok: chk.ok },
           name: sizeName(S, p), ms: Math.round(performance.now() - t0) });
