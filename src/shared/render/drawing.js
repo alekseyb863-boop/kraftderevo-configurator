@@ -144,10 +144,18 @@ export function paintSvg(paint, P2, N, toPx, { maxEdge = 150, light = [-0.45, -0
     }
   }
   tris.sort((x, y) => dot(N, x[0].map((v, i) => v + x[1][i] + x[2][i])) - dot(N, y[0].map((v, i) => v + y[1][i] + y[2][i])));
-  const out = tris.map(([a, b, c, n]) => {
-    const k = Math.max(0, Math.min(1, 0.45 + 0.55 * dot(n, Ln))), col = `rgb(${paint.dark.map((d, i) => Math.round(d + (paint.light[i] - d) * k)).join(",")})`;
-    return `<polygon points="${[a, b, c].map((p) => toPx(P2(...p)).map(f2).join(",")).join(" ")}" fill="${col}" stroke="${col}" stroke-width="0.8" stroke-linejoin="round"/>`;
-  });
+  // Без светлых швов сглаживания между соседними треугольниками: подряд идущие треугольники одного цвета — один <path> (растеризуется целиком),
+  // и обводка тем же цветом шириной 2 (перекрывает стыки и при уменьшении на экране / в PNG / PDF). Обводка выходит за грань на 1 —
+  // меньше половины чёрной линии контура (2,5), поэтому на рёбрах и силуэте не видна.
+  const colOf = (n) => { const k = Math.max(0, Math.min(1, 0.45 + 0.55 * dot(n, Ln))); return `rgb(${paint.dark.map((d, i) => Math.round(d + (paint.light[i] - d) * k)).join(",")})`; };
+  const out = []; let col = null, d = [];
+  const flush = () => { if (d.length) out.push(`<path d="${d.join("")}" fill="${col}" stroke="${col}" stroke-width="2" stroke-linejoin="round"/>`); d = []; };
+  for (const [a, b, c, n] of tris) {
+    const cc = colOf(n); if (cc !== col) { flush(); col = cc; }
+    const [p0, p1, p2] = [a, b, c].map((p) => toPx(P2(...p)).map(f2));
+    d.push(`M${p0[0]} ${p0[1]}L${p1[0]} ${p1[1]}L${p2[0]} ${p2[1]}Z`);
+  }
+  flush();
   return `  <g id="paint">\n    ${out.join("\n    ")}\n  </g>\n`;
 }
 
