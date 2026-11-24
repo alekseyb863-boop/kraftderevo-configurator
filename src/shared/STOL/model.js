@@ -1,8 +1,11 @@
 // STOL «Столешница» — параметрическая столешница (прямоугольный брусок Длина × Ширина × Толщина). Вкладка «Столешницы», без артикулов.
 // Оси: X — длина, Y — ширина, Z — вверх; z = 0 — низ столешницы.
+// Слэб: «Живой край» (liveedge.js) — неровные кромки внутрь номинала, габариты L × W не меняются.
 // Тон: одна из 12 текстур (всегда выбрана, пишется на чертеже); галочка «Текстура» — накладывать ли её на видимые грани (spec.fills), иначе белое тело и чёрные линии;
 // волокна идут вдоль длины. Покрытие (лак/масло) на вид не влияет — только строка на чертеже.
+import * as RC from "replicad";
 import { box } from "../lib/model.js";
+import { liveOutline } from "../lib/liveedge.js";
 import { range, baseNormalize } from "../lib/params.js";
 import { dimAB } from "../render/dimhelpers.js";
 
@@ -50,18 +53,61 @@ export const TOP_CONTROLS = [
     groupBy: "species", groupOf: GROUP_OF, groupDef: TONE_DEF,   // видимые тона зависят от материала (камень — 2 тона, слэб — 1)
     options: Object.entries(TONE_GROUPS).flatMap(([group, list]) => list.map((t) => ({ group, ...t }))).map((t) => ({ value: t.id, label: t.label, group: t.group, thumb: `tex/{dir}/thumb_${t.id}.jpg` })) },
   { type: "check", key: "texture", label: "Текстура", def: false },        // как «Окрашивание» у ножек: выключено — тело белое, тон только в тексте
+  // «Живой край» — только у слэба: 4 галочки в одном блоке (box), по умолчанию сзади и спереди
+  ...[["edgeL", "Слева", false], ["edgeB", "Сзади", true], ["edgeF", "Спереди", true], ["edgeR", "Справа", false]]
+    .map(([key, label, def]) => ({ type: "check", key, label, def, box: "Живой край", showIf: { species: SLAB } })),
   { type: "select", key: "coat", label: "Покрытие", def: "Лак", unit: "", hideIf: { species: STONE }, options: opts(COATINGS) },   // у камня покрытия нет: поле скрыто, на чертеже не пишется
 ];
 export const toneLabel = (id) => (ALL_TONES.find((t) => t.id === id) || {}).label;
 
 const controls = TOP_CONTROLS;
+/** контур живого края (слэб и отмечена хотя бы одна сторона) или null — обычный прямоугольник */
+export function liveOf(p) {
+  if (p.species !== SLAB || !(p.edgeL || p.edgeB || p.edgeF || p.edgeR)) return null;
+  return liveOutline(p.L, p.W, { L: p.edgeL, B: p.edgeB, F: p.edgeF, R: p.edgeR });
+}
+/** тело столешницы (низ на высоте z0): прямоугольный брусок или экструзия контура живого края на толщину (торцы вертикальные) */
+export function topSolid(p, z0 = 0) {
+  const o = liveOf(p);
+  if (!o) return box(0, p.L, 0, p.W, z0, z0 + p.T);
+  let d = RC.draw(o.pts[0]);
+  for (const q of o.pts.slice(1)) d = d.lineTo(q);
+  return d.close().sketchOnPlane("XY", z0).extrude(p.T);
+}
+/** HLR: вертикальные рёбра между соседними гранями живой кромки (почти касательными, < 35°) не рисовать, силуэты остаются */
+export function topHlr(p, z0 = 0) {
+  const o = liveOf(p);
+  if (!o) return null;
+  const P = o.pts, n = P.length, nrm = (a, b) => { const dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy); return [dy / l, -dx / l, 0]; };
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    const a = P[(i + n - 1) % n], b = P[i], c = P[(i + 1) % n], n1 = nrm(a, b), n2 = nrm(b, c);
+    if (n1[0] * n2[0] + n1[1] * n2[1] > Math.cos((35 * Math.PI) / 180)) out.push({ a: [b[0], b[1], z0], b: [b[0], b[1], z0 + p.T], n1, n2 });
+  }
+  return { dropEdges: out };
+}
 /** грани столешницы под текстуру (низ столешницы на высоте z0); white = true — при выключенной «Текстуре» грани заливаются белым (стол: столешница закрывает ножки) */
 export function topFills(p, z0 = 0, white = false) {
   const { L, W, T } = p, tex = p.texture ? texId(p) : null;
   if (!tex && !white) return [];
   const tile = (ALL_TONES.find((t) => t.id === p.tone) || {}).tile || TEX_MM;   // торцы — тем же материалом
   const f = (o, u, v, lu, lv, n, shade) => ({ tex, color: tex ? null : "#fff", o, u, v, lu, lv, n, shade: tex ? shade : 0, tile });
-  const Z = z0 + T;
+  const Z = z0 + T, lo = liveOf(p);
+  if (lo) {
+    // живой край: грани — номинальные прямоугольники (та же раскладка текстуры), обрезка — по фактическому контуру (clip3);
+    // кромка стороны — полоса между её верхней и нижней цепочками; верх рисуется последним (его ничто не перекрывает)
+    // кромка: объединение четырёхугольников по 2 соседним отрезкам (с перекрытием — без швов; при «складке» в проекции нет дыр)
+    const at = (pts, z) => pts.map(([x, y]) => [x, y, z]), S = lo.sides;
+    const strip = (ch) => ch.slice(0, -1).map((_, i) => { const c = ch.slice(i, i + 3); return [...at(c, Z), ...at([...c].reverse(), z0)]; });
+    return [
+      { ...f([0, 0, z0], [1, 0, 0], [0, 0, 1], L, T, [0, -1, 0], 0.14), clips3: strip(S.F), pad: 200 },
+      { ...f([0, W, z0], [1, 0, 0], [0, 0, 1], L, T, [0, 1, 0], 0.14), clips3: strip(S.B), pad: 200 },
+      { ...f([L, 0, z0], [0, 1, 0], [0, 0, 1], W, T, [1, 0, 0], 0.24), clips3: strip(S.R), pad: 200 },
+      { ...f([0, 0, z0], [0, 1, 0], [0, 0, 1], W, T, [-1, 0, 0], 0.24), clips3: strip(S.L), pad: 200 },
+      { ...f([0, 0, z0], [1, 0, 0], [0, 1, 0], L, W, [0, 0, -1], 0.3), clip3: at(lo.pts, z0) },
+      { ...f([0, 0, Z], [1, 0, 0], [0, 1, 0], L, W, [0, 0, 1], 0), clip3: at(lo.pts, Z), last: true },
+    ];
+  }
   return [
     f([0, 0, Z], [1, 0, 0], [0, 1, 0], L, W, [0, 0, 1], 0),
     f([0, 0, z0], [1, 0, 0], [0, 0, 1], L, T, [0, -1, 0], 0.14),
@@ -79,7 +125,8 @@ export const spec = {
   id: "STOL", tab: "tops", type: "Столешница", category: "Столешницы", name: "Столешница", cardLabel: "Столешница",
   about: "Столешница: длина, ширина, толщина 20 или 40 мм, материал (порода дерева, камень или слэб), тон (текстура) и покрытие", controls,
   normalize(raw) { const r = baseNormalize(controls, raw); r.p.T = Number(r.p.T); fixTone(r.p); return r; },
-  parts: (p) => [box(0, p.L, 0, p.W, 0, p.T)],
+  parts: (p) => [topSolid(p)],
+  hlr: (p) => topHlr(p),
   expectBBox: (p) => [p.L, p.W, p.T],
   view: { az: 32, el: 28 }, layout: "wide", auto: true,
   /** грани под текстуру: o — угол, u — вдоль волокон (вдоль длины; на торцах — вдоль ширины), v — поперёк, n — наружная нормаль, shade — затемнение боковых граней */

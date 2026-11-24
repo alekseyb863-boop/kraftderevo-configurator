@@ -11,7 +11,7 @@
 import { fuseAll, box, free } from "../lib/model.js";
 import { range, baseNormalize } from "../lib/params.js";
 import { dimAB } from "../render/dimhelpers.js";
-import { TOP_CONTROLS, topFills, topLines, fixTone } from "../STOL/model.js";
+import { TOP_CONTROLS, topFills, topLines, fixTone, topSolid, topHlr } from "../STOL/model.js";
 import { spec as H031 } from "../H031/model.js";
 import { spec as H050 } from "../H050/model.js";
 import { spec as H028 } from "../H028/model.js";
@@ -94,7 +94,7 @@ function makeTable({ leg: LS, kind, w, l, arm, same }) {
         const C = [[offL, offW, 0], [L - offL, offW, 90], [L - offL, W - offW, 180], [offL, W - offW, -90]];
         for (const [x, y, a] of C) legs.push(...one().map((s) => mov(rot(s, a), [x, y, 0])));
       }
-      return [box(0, L, 0, W, legH, legH + T), ...legs];
+      return [topSolid(p, legH), ...legs];                                       // столешница (живой край у слэба); ножки — от номинала
     },
     assembly: true,
     expectBBox(p) {
@@ -107,7 +107,7 @@ function makeTable({ leg: LS, kind, w, l, arm, same }) {
     fills: (p) => topFills(p, p.legH, p.paint),
     paint: (p, pieces) => (p.paint ? { shapes: pieces.slice(1), ...LEG_COLORS.find((c) => c.id === p.legColor) } : null),
     /** ножки с гладкими рёбрами (Шпилька): без касательных швов; швы стыка прутков у каждой из 4 ножек убираются, как на её карточке */
-    hlr: (p) => (kind === "corner" && LS.hlr ? cornerHlr(p) : { occTol: 1 }),
+    hlr: (p) => ({ ...(kind === "corner" && LS.hlr ? cornerHlr(p) : { occTol: 1 }), ...(topHlr(p, p.legH) || {}) }),
   };
   const cornerHlr = (p) => {
       const h = LS.hlr(p.lp), [a, b] = h.dropSharpIn, { L, W, offL, offW } = p;

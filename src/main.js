@@ -146,7 +146,9 @@ function selectArticle(id) {
 function controlRow(c) {
   const row = document.createElement("div"); row.dataset.key = c.key;
   if (c.depends) row.dataset.depends = c.depends;
-  if (c.hideIf) row.__hideIf = c.hideIf;                                   // скрыть поле при значениях других полей (покрытие у камня)
+  if (c.hideIf) row.__hideIf = c.hideIf;
+  if (c.showIf) row.__showIf = c.showIf;
+  if (c.box) row.__box = c.box;                                   // показать только при значениях других полей (живой край у слэба)                                   // скрыть поле при значениях других полей (покрытие у камня)
   if (c.type === "range") {
     row.className = "row";
     row.innerHTML = `<span>${c.label}</span><input type="range" min="${c.min}" max="${c.max}" step="${c.step}" aria-label="${c.label}"><input type="number" min="${c.min}" max="${c.max}" step="${c.step}" aria-label="${c.label}, число"><span class="unit">${c.unit}</span>`;
@@ -204,9 +206,27 @@ function controlRow(c) {
 }
 /** перерисовать миниатюры, зависящие от других полей (тон -> порода) */
 function refreshThumbs() { for (const r of $("controls").querySelectorAll(".row.swatch")) r.__thumbs?.(); }
+/** соседние поля с общим c.box («Живой край») — в один блок с заголовком; видимость блока — по showIf/hideIf первого поля */
+function groupBoxes(container) {
+  const rows = [...container.querySelectorAll(":scope > .row, :scope .acc-body > .row")];
+  let box = null, name = null;
+  for (const row of rows) {
+    const b = row.__box;
+    if (!b) { box = null; name = null; continue; }
+    if (b !== name || !box || box.nextElementSibling !== row) {
+      box = document.createElement("div"); box.className = "row checks"; box.dataset.box = b;
+      box.innerHTML = `<span>${b}</span><div class="checks-list" role="group" aria-label="${b}"></div>`;
+      box.__showIf = row.__showIf; box.__hideIf = row.__hideIf; row.before(box); name = b;
+    }
+    row.__showIf = row.__hideIf = undefined; box.querySelector(".checks-list").append(row);
+  }
+}
 function applyDepends() {
   for (const row of $("controls").querySelectorAll("[data-depends]")) row.hidden = !values[row.dataset.depends];
-  for (const row of $("controls").querySelectorAll(".row")) if (row.__hideIf) row.hidden = Object.entries(row.__hideIf).some(([k, v]) => values[k] === v);
+  for (const row of $("controls").querySelectorAll(".row")) {
+    if (row.__hideIf) row.hidden = Object.entries(row.__hideIf).some(([k, v]) => values[k] === v);
+    if (row.__showIf) row.hidden = !Object.entries(row.__showIf).every(([k, v]) => values[k] === v);
+  }
 }
 // «Столы»: два раскрывающихся блока — «Столешница» и «Ножки»; открыт всегда ровно один (открытие одного закрывает другой)
 function buildTableControls(box) {
@@ -239,7 +259,7 @@ function buildTableControls(box) {
 }
 function buildControls() {
   const box = $("controls"); box.innerHTML = "";
-  if (cur.tab === "tables") { buildTableControls(box); applyDepends(); return; }
+  if (cur.tab === "tables") { buildTableControls(box); groupBoxes(box); applyDepends(); return; }
   const main = cur.controls.filter((c) => !c.extra), extra = cur.controls.filter((c) => c.extra);
   for (const c of main) box.append(controlRow(c));
   if (extra.length) {
@@ -248,7 +268,7 @@ function buildControls() {
     for (const c of extra) det.append(controlRow(c));
     box.append(det);
   }
-  applyDepends();
+  groupBoxes(box); applyDepends();
 }
 /** показать в полях значения, которые вернул воркер после проверки (ограничения диапазонов, согласование параметров) */
 function syncControls(p, force) {

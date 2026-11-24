@@ -102,17 +102,23 @@ export function texturesSvg(fills, textures, P2, N, toPx) {
   if (!vis.length) return "";
   // порядок: сначала дальние грани (по глубине центра), чтобы ближние их перекрывали
   const dep = (F) => { const c = F.o.map((x, i) => x + (F.lu * F.u[i] + F.lv * F.v[i]) / 2); return c[0] * N[0] + c[1] * N[1] + c[2] * N[2]; };
-  vis.sort((a, b) => dep(a) - dep(b));
+  vis.sort((a, b) => (a.last ? 1 : 0) - (b.last ? 1 : 0) || dep(a) - dep(b));        // last — грань, которую ничто не перекрывает (верх слэба)
   const at = (F, s, t) => toPx(P2(...F.o.map((x, i) => x + s * F.u[i] + t * F.v[i])));
   const ids = [...new Set(vis.filter((F) => !F.color).map((F) => F.tex))], defs = [], body = [];
   ids.forEach((id, k) => defs.push(`<image id="tx${k}" xlink:href="${textures[id]}" href="${textures[id]}" x="0" y="0" width="1" height="1" preserveAspectRatio="none"/>`));
   vis.forEach((F, j) => {
     const p0 = at(F, 0, 0), pu = at(F, 1, 0), pv = at(F, 0, 1), k = ids.indexOf(F.tex), [tu, tv] = F.tile;
-    const poly = [at(F, 0, 0), at(F, F.lu, 0), at(F, F.lu, F.lv), at(F, 0, F.lv)].map((q) => f2(q[0]) + "," + f2(q[1])).join(" ");
-    if (F.color) { body.push(`<polygon points="${poly}" fill="${F.color}" stroke="${F.color}" stroke-width="0.6"/>`); return; }
-    defs.push(`<clipPath id="tc${j}"><polygon points="${poly}"/></clipPath>`);
+    // контур грани: прямоугольник, clip3 — один многоугольник (3D), clips3 — объединение нескольких многоугольников (кромка живого края)
+    const pts3 = F.clips3 || [F.clip3 || null], px = pts3.map((c) => (c ? c.map((q) => toPx(P2(...q))) : [at(F, 0, 0), at(F, F.lu, 0), at(F, F.lu, F.lv), at(F, 0, F.lv)]));
+    const pstr = (c) => c.map((q) => f2(q[0]) + "," + f2(q[1])).join(" "), polys = px.map(pstr);
+    let poly = polys[0];
+    if (px.length > 1) { const all = px.flat(), xs = all.map((q) => q[0]), ys = all.map((q) => q[1]), x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys); poly = `${f2(x0)},${f2(y0)} ${f2(x1)},${f2(y0)} ${f2(x1)},${f2(y1)} ${f2(x0)},${f2(y1)}`; }   // затемнение — по рамке, обрезается clipPath
+    if (F.color) { for (const pg of polys) body.push(`<polygon points="${pg}" fill="${F.color}" stroke="${F.color}" stroke-width="0.6"/>`); return; }
+    defs.push(`<clipPath id="tc${j}">${polys.map((pg) => `<polygon points="${pg}"/>`).join("")}</clipPath>`);
     const uses = [];
-    for (let s = 0; s < F.lu; s += tu) for (let t = 0; t < F.lv; t += tv) uses.push(`<use xlink:href="#tx${k}" href="#tx${k}" transform="translate(${f2(s)} ${f2(t)}) scale(${f2(tu + 3)} ${f2(tv + 3)})"/>`);
+    // pad (мм) — плитки и за пределами номинальной грани: кромка живого края лежит внутри и в проекции на номинал выходит за [0, lu]
+    const pu0 = F.pad ? -Math.ceil(F.pad / tu) * tu : 0, pv0 = F.pad ? -Math.ceil(F.pad / tv) * tv : 0, pad = F.pad || 0;
+    for (let s = pu0; s < F.lu + pad; s += tu) for (let t = pv0; t < F.lv + pad; t += tv) uses.push(`<use xlink:href="#tx${k}" href="#tx${k}" transform="translate(${f2(s)} ${f2(t)}) scale(${f2(tu + 3)} ${f2(tv + 3)})"/>`);
     const m = [pu[0] - p0[0], pu[1] - p0[1], pv[0] - p0[0], pv[1] - p0[1], p0[0], p0[1]].map((x) => +x.toFixed(5));
     body.push(`<g clip-path="url(#tc${j})"><g transform="matrix(${m.join(" ")})">${uses.join("")}</g>${F.shade ? `<polygon points="${poly}" fill="#000" fill-opacity="${F.shade}" stroke="none"/>` : ""}</g>`);
   });

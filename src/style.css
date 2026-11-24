@@ -73,3 +73,9 @@ details.acc[open] > summary { background: #1d6fd1; color: #fff; } details.acc[op
 .sw[hidden] { display: none; }
 .sw:hover { border-color: #1d6fd1; } .sw[aria-checked=true] { border-color: #1d6fd1; box-shadow: 0 0 0 2px #1d6fd1 inset; background: #eaf2fd; }
 @media (max-width: 900px) { body.tab-tops #view { height: auto; min-height: 0; } body.tab-tops #view svg { width: 100%; height: auto; } header { flex-wrap: wrap; gap: 4px 12px; padding: 8px 12px; } .status { flex-basis: 100%; font-size: 13px; overflow-wrap: anywhere; } main { padding: 8px; } main { grid-template-columns: 1fr; } #view { position: static; height: 80vh; } }
+/* «Живой край»: заголовок + 4 галочки в сетке 2×2 (подпись справа от галочки) */
+.row.checks { grid-template-columns: 112px 1fr; align-items: start; }
+.checks-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 10px; }
+.checks-list .row.check { display: flex; flex-direction: row-reverse; justify-content: flex-end; align-items: center; gap: 6px; margin: 0; }
+.checks-list .row.check input { width: 18px; height: 18px; margin: 0; }
+.checks-list .row.check > span:first-child { font-size: 13px; }

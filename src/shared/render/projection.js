@@ -36,7 +36,7 @@ export function projectSolid(solid, azDeg, elDeg, hlr = null) {
   const view = makeView(azDeg, elDeg), { N, RIGHT, P2 } = view;
   const camera = new R.ProjectionCamera(N.map((x) => x * 5000), N, RIGHT);
   let lines, sharp = null;
-  if (!hlr || (hlr.smooth !== false && !hlr.dropSharpIn)) {                                 // hlr только с occTol — обычная проекция
+  if (!hlr || (hlr.smooth !== false && !hlr.dropSharpIn && !hlr.dropEdges)) {                                 // hlr только с occTol — обычная проекция
     const { visible, hidden } = R.drawProjection(solid, camera);
     lines = drawingPolylines(visible);
     for (const d of [visible, hidden]) { try { d && d.delete(); } catch { /* already freed */ } }
@@ -50,6 +50,7 @@ export function projectSolid(solid, azDeg, elDeg, hlr = null) {
     for (const o of [h, pj, hl]) { try { o.delete(); } catch { /* ok */ } }
   }
   if (sharp) { lines = [...sharp, ...lines]; }
+  let nSharp = sharp ? sharp.length : 0;                                                 // острые рёбра идут первыми в lines
   // reference projection of the true model vertices (mesh vertices of a polyhedron = its vertices)
   const m = solid.mesh({ tolerance: 0.1, angularTolerance: 0.1 }), ref = [];
   for (let i = 0; i < m.vertices.length; i += 3) ref.push(P2(m.vertices[i], m.vertices[i + 1], m.vertices[i + 2]));
@@ -62,7 +63,17 @@ export function projectSolid(solid, azDeg, elDeg, hlr = null) {
     // один бокс [[x0,y0,z0],[x1,y1,z1]] или список боксов
     const boxes = Array.isArray(hlr.dropSharpIn[0][0]) ? hlr.dropSharpIn : [hlr.dropSharpIn];
     const ins = boxes.map(([a, b]) => inHull(hull2([0, 1].flatMap((i) => [0, 1].flatMap((j) => [0, 1].map((k) => P2(i ? b[0] : a[0], j ? b[1] : a[1], k ? b[2] : a[2])))))));
-    lines = lines.filter((pl, i) => i >= sharp.length || !ins.some((inside) => pl.every(inside)));
+    const keep = lines.map((pl, i) => i >= sharp.length || !ins.some((inside) => pl.every(inside)));
+    nSharp = keep.slice(0, sharp.length).filter(Boolean).length;
+    lines = lines.filter((_, i) => keep[i]);
+  }
+  if (sharp && hlr.dropEdges) {
+    // dropEdges: [{ a, b, n1, n2 }] — 3D-рёбра (вертикали живой кромки) между почти касательными гранями: не рисовать,
+    // если обе грани смотрят в одну сторону (не силуэт); линия убирается, только если целиком лежит на проекции ребра
+    const dot = (n) => n[0] * N[0] + n[1] * N[1] + n[2] * N[2];
+    const segs = hlr.dropEdges.filter((e) => (dot(e.n1) > 0) === (dot(e.n2) > 0)).map((e) => [P2(...e.a), P2(...e.b)]);
+    const dseg = (q, [a, b]) => { const dx = b[0] - a[0], dy = b[1] - a[1], l2 = dx * dx + dy * dy, t = l2 ? Math.max(0, Math.min(1, ((q[0] - a[0]) * dx + (q[1] - a[1]) * dy) / l2)) : 0; return Math.hypot(a[0] + t * dx - q[0], a[1] + t * dy - q[1]); };
+    lines = lines.filter((pl, i) => i >= nSharp || !segs.some((sg) => pl.every((q) => dseg(q, sg) < 0.05)));
   }
   // mirror/orientation check: each extreme model vertex (min/max x, min/max y) must coincide with a visible line end point
   const ends = lines.flatMap((pl) => [pl[0], pl[pl.length - 1]]);
