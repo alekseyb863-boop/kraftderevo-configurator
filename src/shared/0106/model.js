@@ -86,11 +86,11 @@ export const spec = {
     const pST = [xFace, yf(DT), H], pSB = [xFace, yf(DB), 0];              // верх и низ наружного ребра наклона, левая грань
     const dimSide = dimAB(pST, pSB, [pST[0] - Ox, pST[1], H], [pSB[0] - Ox, pSB[1], 0], `${Math.round(lenS)} мм`);
     const rA = 50 * k, rlTop = 82 * k, rlBot = 115 * k;
-    // фасадная рама: 82° — дуга во внутреннем правом верхнем углу, подпись слева-ниже у дуги
-    const arcWT = angleArcXZ(innW[2], [-1, 0], nrm((x0b + WB) - (x0t + WT), -H), rA, 68 * k, `${wTop}°`, yF);
-    arcWT.at = [innW[2][0] - 45 * k, yF, innW[2][1] - 55 * k];          // слева-ниже дуги, без наложений на профиль
-    const arcWB = angleArcXZ(innW[1], [-1, 0], nrm((x0t + WT) - (x0b + WB), H), rA, rlBot, `${wBot}°`, yF);
-    arcWB.at = [innW[1][0] - 24 * k, yF, innW[1][1] + 70 * k];          // ближе к дуге, выше угла — не на шаге боковой рамы
+    const yFront = yf(DEP);                                               // ближняя к зрителю грань фасадной рамы (не задняя)
+    // 82° — внутренний верхний левый угол передней грани, подпись справа-ниже в проёме
+    const arcWT = angleArcXZ(innW[3], [1, 0], nrm(x0b - x0t, -H), rA, 68 * k, `${wTop}°`, yFront);
+    // 98° — внутренний нижний левый угол передней грани, подпись справа-выше в проёме
+    const arcWB = angleArcXZ(innW[0], [1, 0], nrm(x0t - x0b, H), rA, 70 * k, `${wBot}°`, yFront);
     // боковая рама: внутренние углы у наклона, в плоскости левой грани (YZ, координаты после mirrorY)
     const vST = [yf(innS[2][0]), innS[2][1]], vSB = [yf(innS[1][0]), innS[1][1]];
     const arcST = angleArcYZ(vST, [1, 0], nrm(yf(innS[1][0]) - yf(innS[2][0]), innS[1][1] - innS[2][1]), rA, rlTop, `${sTop}°`, xFace);
