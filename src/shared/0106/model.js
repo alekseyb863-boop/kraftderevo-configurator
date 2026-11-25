@@ -54,14 +54,16 @@ export const spec = {
   view: { az: -31, el: 23, mirrorY: true }, layout: "forms", auto: true,  // слева сверху, зеркало только на чертеже: фасад к зрителю, глубина вправо-вниз
   dims(p, k = 1) {
     const { WT, WB, DT, DB, H } = p, { Wmax, x0b, x0t } = geo(p), O = 80 * k;
+    const r = findIn(PROFILES, p.profile), cx1 = Wmax / 2 + r.a / 2; // правый край боковой рамы
     const D = Math.max(DT, DB), yf = (y) => D - y;                 // координаты чертежа после view.mirrorY: фасад на y=D, торец глубины ближе к зрителю
     const xr = x0b + WB, yF = yf(0);                               // плоскость фасада
+    const Od = DB + O;                                             // 500: вынос вдоль глубины за низ боковой рамы
     return [
-      dimAB([x0t, yF, H], [x0t + WT, yF, H], [x0t, yF, H + O], [x0t + WT, yF, H + O], `${WT} мм`),       // ширина верха — над рамой
-      dimAB([Wmax, yF, H], [Wmax, yf(DT), H], [Wmax, yF, H + O], [Wmax, yf(DT), H + O], `${DT} мм`),     // глубина верха — от правого конца 700 к зрителю
-      dimAB([x0b, yF, 0], [x0t, yF, H], [-O, yF, 0], [-O, yF, H], `${H} мм`),                           // высота — слева
-      dimAB([x0b, yF, 0], [xr, yF, 0], [x0b, yF, -O], [xr, yF, -O], `${WB} мм`),                         // ширина низа — под рамой
-      dimAB([xr, yF, 0], [xr, yf(DB), 0], [xr, yF, -O], [xr, yf(DB), -O], `${DB} мм`),                   // глубина низа — от правого конца 500 к зрителю
+      dimAB([x0t, yF, H], [x0t + WT, yF, H], [x0t, yF, H + O], [x0t + WT, yF, H + O], `${WT} мм`),                 // ширина верха — над рамой (как было)
+      dimAB([Wmax, yF, H], [Wmax, yf(DT), H], [Wmax + O, yF, H], [Wmax + O, yf(DT), H], `${DT} мм`),             // глубина верха: выносы вправо по ширине, размер вдоль глубины
+      dimAB([x0b, yF, 0], [x0t, yF, H], [-O, yF, 0], [-O, yF, H], `${H} мм`),                                     // высота — слева (как было)
+      dimAB([x0b, yF, 0], [xr, yF, 0], [x0b, yF - Od, 0], [xr, yF - Od, 0], `${WB} мм`),                           // ширина низа: выносы к зрителю вдоль глубины
+      dimAB([xr, yF, 0], [cx1, yf(DB), 0], [xr + O, yF, 0], [xr + O, yf(DB), 0], `${DB} мм`),                       // глубина низа: выносы вправо по ширине, размер вдоль глубины
     ];
   },
   textLines: (p) => ["Ножка 0106", `Профиль ${findIn(PROFILES, p.profile).label} мм`, `Цвет: ${p.color}`,
