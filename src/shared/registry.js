@@ -11,6 +11,7 @@ import { spec as H050 } from "./H050/model.js";
 import { spec as H027_1 } from "./H027-1/model.js";
 import { spec as H112 } from "./H112/model.js";
 import { spec as H028 } from "./H028/model.js";
+import { spec as A0106 } from "./0106/model.js";
 import { spec as H030_2 } from "./H030-2/model.js";
 import { spec as H043 } from "./H043/model.js";
 import { spec as H038 } from "./H038/model.js";
@@ -29,7 +30,7 @@ import { spec as A0011 } from "./0011/model.js";
 import { spec as STOL } from "./STOL/model.js";
 import { TABLES } from "./TABLE/model.js";
 // порядок: Ножки и опоры → Ножки-шпильки → Подстолья → Подстолья Круглые → Рейлы → Вешалки → Под раковины → Другое
-export const ARTICLES = [H031, H005, H050, H027_1, H112, H028, H030_2, H043, H038, A0090, A0011, H105, SHP3, H114, A0320, H098, YOZH, KONSOL, H091, A0118, A0159, V006_2, V004, VA012, A1187, VA008, TUMBA_KUH, STOL, ...TABLES];
+export const ARTICLES = [H031, H005, H050, H027_1, H112, H028, A0106, H030_2, H043, H038, A0090, A0011, H105, SHP3, H114, A0320, H098, YOZH, KONSOL, H091, A0118, A0159, V006_2, V004, VA012, A1187, VA008, TUMBA_KUH, STOL, ...TABLES];
 export const CATEGORIES = [...new Set(ARTICLES.map((s) => s.category))];
 export const BY_ID = Object.fromEntries(ARTICLES.map((s) => [s.id, s]));
 /** serialisable description of all articles for the UI (no functions) */
