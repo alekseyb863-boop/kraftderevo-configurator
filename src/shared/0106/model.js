@@ -1,7 +1,8 @@
 // 0106 Ножка для стола: как Н028, но рама — трапеция: ширина и глубина задаются отдельно для верха и низа.
 // По умолчанию профиль 40×20 (20 в плоскости, 40 в глубину), верх 600×230, низ 600×400, высота 710;
-// плюс боковая рама от середины верхней и нижней перемычек (задняя стойка наклоняется, если глубины разные).
-import { frame, box, prismYZ } from "../lib/model.js";
+// плюс боковая рама от середины верхней и нижней перемычек. Задняя стойка — тот же frame(), что и у остальных
+// диагональных профилей: стыки «в ус», наружное ребро от верхней точки верха (y=DT, z=H) к нижней точке низа (y=DB, z=0).
+import { frame, free } from "../lib/model.js";
 import { PROFILES, range, profileCtl, colorCtl, findIn, baseNormalize, frameFeasible, relax } from "../lib/params.js";
 import { dimAB } from "../render/dimhelpers.js";
 import { frameMembers, sum } from "../lib/length.js";
@@ -20,6 +21,8 @@ const geo = (p) => {
   const Wmax = Math.max(p.WT, p.WB), x0b = (Wmax - p.WB) / 2, x0t = (Wmax - p.WT) / 2;
   return { Wmax, x0b, x0t, outer: [[x0b, 0], [x0b + p.WB, 0], [x0t + p.WT, p.H], [x0t, p.H]] };
 };
+/** Боковая рама в плоскости глубины (локально XZ = YZ модели): открыта спереди, где стыкуется с фасадной рамой. */
+const sideOuter = (p, r) => [[r.a, 0], [p.DB, 0], [p.DT, p.H], [r.a, p.H]];
 
 export const spec = {
   id: "0106", type: "Ножка", category: "Ножки и опоры", name: "Ножка 0106",
@@ -27,25 +30,25 @@ export const spec = {
   normalize(raw) {
     const { p, warnings } = baseNormalize(controls, raw);
     relax(p, controls, (q) => {
-      const r = findIn(PROFILES, q.profile), { outer } = geo(q);
-      return frameFeasible(outer, [r.b, r.b, r.b, r.b], 20) && q.DT >= r.a + r.b + 30 && q.DB >= r.a + r.b + 30 && q.H >= 2 * r.b + 40;
+      const r = findIn(PROFILES, q.profile), { outer } = geo(q), t = r.b;
+      return frameFeasible(outer, [t, t, t, t], 20) && frameFeasible(sideOuter(q, r), [t, t, t, 0], 20)
+        && q.DT >= r.a + t + 30 && q.DB >= r.a + t + 30 && q.H >= 2 * t + 40;
     }, [["DT", 10], ["DB", 10], ["H", 10], ["WT", 10], ["WB", 10]], warnings, "иначе профиль не помещается");
     return { p, warnings };
   },
   parts(p) {
-    const { a: DEP, b: TIN } = findIn(PROFILES, p.profile), { WT, WB, DT, DB, H } = p, { Wmax, outer } = geo(p);
-    const cx0 = Wmax / 2 - DEP / 2, cx1 = Wmax / 2 + DEP / 2;
-    return [
-      frame(outer, [TIN, TIN, TIN, TIN], 0, DEP),
-      box(cx0, cx1, DEP, DB, 0, TIN),
-      box(cx0, cx1, DEP, DT, H - TIN, H),
-      prismYZ([[DB - TIN, TIN], [DB, TIN], [DT, H - TIN], [DT - TIN, H - TIN]], cx0, cx1),
-    ];
+    const r = findIn(PROFILES, p.profile), { a: DEP, b: TIN } = r, { Wmax, outer } = geo(p);
+    const cx1 = Wmax / 2 + DEP / 2;
+    // frame в XZ (локальный x = глубина), затем поворот в YZ, как у 0320 / Н114
+    const side = frame(sideOuter(p, r), [TIN, TIN, TIN, TIN], 0, DEP, [3]);
+    const placed = side.rotate(90, [0, 0, 0], [0, 0, 1]).translate([cx1, 0, 0]);
+    free(side);
+    return [frame(outer, [TIN, TIN, TIN, TIN], 0, DEP), placed];
   },
-  /** метраж: рама WT/WB × H + 2 горизонтальных (разной длины) и 1 наклонный элемент боковой рамы */
+  /** метраж: фасадная рама WT/WB × H + боковая рама (три элемента, наклонный — по оси, стыки «в ус») */
   profileLength(p) {
-    const { a: DEP, b: TIN } = findIn(PROFILES, p.profile), { DT, DB, H } = p, { outer } = geo(p);
-    return sum(frameMembers(outer, [TIN, TIN, TIN, TIN])) + (DB - DEP) + (DT - DEP) + Math.hypot(DB - DT, H - 2 * TIN);
+    const r = findIn(PROFILES, p.profile), t = r.b, { outer } = geo(p);
+    return sum(frameMembers(outer, [t, t, t, t])) + sum(frameMembers(sideOuter(p, r), [t, t, t, t], [3]));
   },
   expectBBox: (p) => [Math.max(p.WT, p.WB), Math.max(p.DT, p.DB), p.H],
   view: { az: 35, el: 18 }, layout: "forms",
