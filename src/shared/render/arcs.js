@@ -49,3 +49,15 @@ export function angleArcXZ(v, u1, u2, r, rl, text, y = 0, n = 32, lead = false) 
   const tm = a1 + da / 2;
   return { arc: true, pts, at: [v[0] + rl * Math.cos(tm), y, v[1] + rl * Math.sin(tm)], text, lead };
 }
+
+/**
+ * Дуга угла в плоскости YZ (x = const): вершина v = [y, z], единичные направления сторон u1, u2 ([y, z]), радиус r (мм модели);
+ * подпись — на биссектрисе на расстоянии rl от вершины.
+ */
+export function angleArcYZ(v, u1, u2, r, rl, text, x = 0, n = 32, lead = false) {
+  const a1 = Math.atan2(u1[1], u1[0]); let a2 = Math.atan2(u2[1], u2[0]), da = a2 - a1;
+  while (da > Math.PI) da -= 2 * Math.PI; while (da < -Math.PI) da += 2 * Math.PI;
+  const pts = Array.from({ length: n + 1 }, (_, i) => { const t = a1 + (da * i) / n; return [x, v[0] + r * Math.cos(t), v[1] + r * Math.sin(t)]; });
+  const tm = a1 + da / 2;
+  return { arc: true, pts, at: [x, v[0] + rl * Math.cos(tm), v[1] + rl * Math.sin(tm)], text, lead };
+}

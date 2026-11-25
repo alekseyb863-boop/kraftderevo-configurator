@@ -2,9 +2,10 @@
 // По умолчанию профиль 60×30 (30 в плоскости, 60 в глубину), верх 700×300, низ 500×200, высота 710, цвет черный;
 // плюс боковая рама от середины верхней и нижней перемычек. Задняя стойка — тот же frame(), что и у остальных
 // диагональных профилей: стыки «в ус», наружное ребро от верхней точки верха (y=DT, z=H) к нижней точке низа (y=DB, z=0).
-import { frame, free } from "../lib/model.js";
+import { frame, free, innerPolygon } from "../lib/model.js";
 import { PROFILES, range, profileCtl, colorCtl, findIn, baseNormalize, frameFeasible, relax } from "../lib/params.js";
 import { dimAB } from "../render/dimhelpers.js";
+import { angleArcXZ, angleArcYZ } from "../render/arcs.js";
 import { frameMembers, sum } from "../lib/length.js";
 
 const controls = [
@@ -64,6 +65,38 @@ export const spec = {
       dimAB([x0b, yF, 0], [xr, yF, 0], [x0b, yF - Od, 0], [xr, yF - Od, 0], `${WB} мм`),                           // ширина низа: выносы к зрителю вдоль глубины
       dimAB([xr, yF, 0], [xr, yf(DB), 0], [xr + O, yF, 0], [xr + O, yf(DB), 0], `${DB} мм`),                         // глубина низа: как 300 — короткие выносы от правого края низа, размер вдоль глубины
     ];
+  },
+  /** при галочке «№ заказа»: полные длины наружных рёбер наклонных профилей и внутренние углы дугами без стрелок */
+  orderDims(p, k = 1) {
+    const { WT, WB, DT, DB, H } = p, { Wmax, x0b, x0t, outer } = geo(p);
+    const r = findIn(PROFILES, p.profile), t = r.b, DEP = r.a;
+    const D = Math.max(DT, DB), yf = (y) => D - y, yF = yf(0);
+    const innW = innerPolygon(outer, [t, t, t, t]), innS = innerPolygon(sideOuter(p, r), [t, t, t, t], [3]);
+    const nrm = (x, z) => { const L = Math.hypot(x, z) || 1; return [x / L, z / L]; };
+    const lenW = Math.hypot(x0t - x0b, H), lenS = Math.hypot(DT - DB, H);
+    const aW = Math.atan2(Math.abs(x0b - x0t), H), aS = Math.atan2(Math.abs(DT - DB), H);
+    const wTop = Math.round(90 - aW * 180 / Math.PI), wBot = Math.round(90 + aW * 180 / Math.PI);
+    const sTop = Math.round(90 - aS * 180 / Math.PI), sBot = Math.round(90 + aS * 180 / Math.PI);
+    // 717 слева: параллельно наружному левому ребру, снаружи, дальше вертикали 710
+    const Lslant = 220 * k, nL = nrm(-(H), -(x0b - x0t));                                   // наружная нормаль в XZ (влево-вниз)
+    const pLT = [x0t, yF, H], pLB = [x0b, yF, 0];
+    const dimLeft = dimAB(pLT, pLB, [pLT[0] + nL[0] * Lslant, yF, pLT[2] + nL[1] * Lslant], [pLB[0] + nL[0] * Lslant, yF, pLB[2] + nL[1] * Lslant], `${Math.round(lenW)} мм`);
+    // 717 боковой рамы: в среднем проёме, чуть левее боковой рамы, выносы от наружных углов наклона, размер параллелен ребру
+    const xFace = Wmax / 2 - DEP / 2, xDim = xFace - 40 * k, Om = 120 * k;
+    const pST = [xFace, yf(DT), H], pSB = [xFace, yf(DB), 0];
+    const dimSide = dimAB(pST, pSB, [xDim, pST[1] + Om, H], [xDim, pSB[1] + Om, 0], `${Math.round(lenS)} мм`);
+    const rA = 50 * k, rlTop = 82 * k, rlBot = 115 * k;
+    // фасадная рама: внутренние правые углы на плоскости фасада; подписи чуть сдвинуты в проём, чтобы не садились на профиль
+    const arcWT = angleArcXZ(innW[2], [-1, 0], nrm((x0b + WB) - (x0t + WT), -H), rA, rlTop, `${wTop}°`, yF);
+    arcWT.at = [arcWT.at[0] - 30 * k, yF, arcWT.at[2] - 25 * k];
+    const arcWB = angleArcXZ(innW[1], [-1, 0], nrm((x0t + WT) - (x0b + WB), H), rA, rlBot, `${wBot}°`, yF);
+    arcWB.at = [innW[1][0] - 24 * k, yF, innW[1][1] + 70 * k];          // ближе к дуге, выше угла — не на шаге боковой рамы
+    // боковая рама: внутренние углы у наклона, в плоскости левой грани (YZ, координаты после mirrorY)
+    const vST = [yf(innS[2][0]), innS[2][1]], vSB = [yf(innS[1][0]), innS[1][1]];
+    const arcST = angleArcYZ(vST, [1, 0], nrm(yf(innS[1][0]) - yf(innS[2][0]), innS[1][1] - innS[2][1]), rA, rlTop, `${sTop}°`, xFace);
+    arcST.at = [xFace, arcST.at[1] + 25 * k, arcST.at[2] - 20 * k];
+    const arcSB = angleArcYZ(vSB, [1, 0], nrm(yf(innS[2][0]) - yf(innS[1][0]), innS[2][1] - innS[1][1]), rA, rlBot, `${sBot}°`, xFace);
+    return [dimLeft, dimSide, arcWT, arcWB, arcST, arcSB];
   },
   textLines: (p) => ["Ножка 0106", `Профиль ${findIn(PROFILES, p.profile).label} мм`, `Цвет: ${p.color}`,
     `Ширина верха: ${p.WT} мм`, `Ширина низа: ${p.WB} мм`, `Глубина верха: ${p.DT} мм`, `Глубина низа: ${p.DB} мм`, `Высота: ${p.H} мм`],
