@@ -85,19 +85,21 @@ export const spec = {
     const xFace = Wmax / 2 - DEP / 2, Ox = 180 * k;
     const pST = [xFace, yf(DT), H], pSB = [xFace, yf(DB), 0];              // верх и низ наружного ребра наклона, левая грань
     const dimSide = dimAB(pST, pSB, [pST[0] - Ox, pST[1], H], [pSB[0] - Ox, pSB[1], 0], `${Math.round(lenS)} мм`);
-    const rA = 50 * k, rlTop = 82 * k, rlBot = 115 * k;
+    const rA = 25 * k, rlTop = 57 * k;                                    // радиус дуг — половина прежнего (было 50)
     const yFront = yf(DEP);                                               // ближняя к зрителю грань фасадной рамы (не задняя)
     // 82° — внутренний верхний левый угол передней грани, подпись справа-ниже в проёме
-    const arcWT = angleArcXZ(innW[3], [1, 0], nrm(x0b - x0t, -H), rA, 68 * k, `${wTop}°`, yFront);
+    const arcWT = angleArcXZ(innW[3], [1, 0], nrm(x0b - x0t, -H), rA, 43 * k, `${wTop}°`, yFront);
+    arcWT.at = [innW[3][0] + 35 * k, yFront, innW[3][1] - 25 * k];
     // 98° — внутренний нижний левый угол передней грани, подпись справа-выше в проёме
-    const arcWB = angleArcXZ(innW[0], [1, 0], nrm(x0t - x0b, H), rA, 70 * k, `${wBot}°`, yFront);
+    const arcWB = angleArcXZ(innW[0], [1, 0], nrm(x0t - x0b, H), rA, 45 * k, `${wBot}°`, yFront);
+    arcWB.at = [innW[0][0] + 28 * k, yFront, innW[0][1] + 54 * k];
     // боковая рама: внутренние углы у наклона, в плоскости левой грани (YZ, координаты после mirrorY)
     const vST = [yf(innS[2][0]), innS[2][1]], vSB = [yf(innS[1][0]), innS[1][1]];
     const arcST = angleArcYZ(vST, [1, 0], nrm(yf(innS[1][0]) - yf(innS[2][0]), innS[1][1] - innS[2][1]), rA, rlTop, `${sTop}°`, xFace);
     arcST.at = [xFace, arcST.at[1] + 25 * k, arcST.at[2] - 20 * k];
     // 98° у низа наклона: дуга во внутреннем углу, подпись слева-сверху у дуги; можно заезжать на модель
-    const arcSB = angleArcYZ(vSB, [1, 0], nrm(yf(innS[2][0]) - yf(innS[1][0]), innS[2][1] - innS[1][1]), rA, 62 * k, `${sBot}°`, xFace);
-    arcSB.at = [xFace - 28 * k, vSB[0] + 10 * k, vSB[1] + 55 * k];     // слева-сверху от дуги, в проёме
+    const arcSB = angleArcYZ(vSB, [1, 0], nrm(yf(innS[2][0]) - yf(innS[1][0]), innS[2][1] - innS[1][1]), rA, 37 * k, `${sBot}°`, xFace);
+    arcSB.at = [xFace - 17 * k, vSB[0] + 6 * k, vSB[1] + 33 * k];      // слева-сверху от дуги, в проёме (зазор как при r=50)
     arcSB.overGeom = true;
     return [dimLeft, dimSide, arcWT, arcWB, arcST, arcSB];
   },
