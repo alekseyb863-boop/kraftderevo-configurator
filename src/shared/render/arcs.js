@@ -35,7 +35,7 @@ export function buildArc(d, ctx) {
   }
   const r = { x0: x0 - padp, x1: x0 + lb.width + padp, y0: baseline - lb.top - padp, y1: baseline + lb.bottom + padp };
   const poly = [[r.x0, r.y0], [r.x1, r.y0], [r.x1, r.y1], [r.x0, r.y1]];
-  return { svg, ext: [], line, arrows, label: { poly, text: d.text }, ends: [px[0], px[px.length - 1]] };
+  return { svg, ext: [], line, arrows, label: { poly, text: d.text }, ends: [px[0], px[px.length - 1]], overGeom: !!d.overGeom };
 }
 
 /**

@@ -21,7 +21,7 @@ export function overlapCheck({ geom, dims, header, W, H, margin = 8 }) {
   }
   dims.forEach((d, i) => {
     const poly = d.label.poly;
-    r.labelVsGeom += gSegs.filter(([a, b]) => segPoly(a, b, poly)).length;
+    r.labelVsGeom += d.overGeom ? 0 : gSegs.filter(([a, b]) => segPoly(a, b, poly)).length;  // overGeom: подпись может заезжать на модель
     const own = new Set([...d.line, ...d.arrows]);
     r.labelVsOtherDims += dSegs.filter((s) => !own.has(s)).filter(([a, b]) => segPoly(a, b, poly)).length;
     dims.forEach((o, j) => { if (j > i && polyRect(poly, { x0: Math.min(...o.label.poly.map((p) => p[0])), x1: Math.max(...o.label.poly.map((p) => p[0])), y0: Math.min(...o.label.poly.map((p) => p[1])), y1: Math.max(...o.label.poly.map((p) => p[1])) })) r.labelVsLabel++; });

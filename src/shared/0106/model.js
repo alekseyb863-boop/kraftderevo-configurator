@@ -81,21 +81,24 @@ export const spec = {
     const Lslant = 220 * k, nL = nrm(-(H), -(x0b - x0t));                                   // наружная нормаль в XZ (влево-вниз)
     const pLT = [x0t, yF, H], pLB = [x0b, yF, 0];
     const dimLeft = dimAB(pLT, pLB, [pLT[0] + nL[0] * Lslant, yF, pLT[2] + nL[1] * Lslant], [pLB[0] + nL[0] * Lslant, yF, pLB[2] + nL[1] * Lslant], `${Math.round(lenW)} мм`);
-    // 717 боковой рамы: в среднем проёме, чуть левее боковой рамы, выносы от наружных углов наклона, размер параллелен ребру
-    const xFace = Wmax / 2 - DEP / 2, xDim = xFace - 40 * k, Om = 120 * k;
-    const pST = [xFace, yf(DT), H], pSB = [xFace, yf(DB), 0];
-    const dimSide = dimAB(pST, pSB, [xDim, pST[1] + Om, H], [xDim, pSB[1] + Om, 0], `${Math.round(lenS)} мм`);
+    // 717 боковой рамы: выносы влево вдоль оси ширины (как ребро 700), размер между ними в проёме
+    const xFace = Wmax / 2 - DEP / 2, Ox = 180 * k;
+    const pST = [xFace, yf(DT), H], pSB = [xFace, yf(DB), 0];              // верх и низ наружного ребра наклона, левая грань
+    const dimSide = dimAB(pST, pSB, [pST[0] - Ox, pST[1], H], [pSB[0] - Ox, pSB[1], 0], `${Math.round(lenS)} мм`);
     const rA = 50 * k, rlTop = 82 * k, rlBot = 115 * k;
-    // фасадная рама: внутренние правые углы на плоскости фасада; подписи чуть сдвинуты в проём, чтобы не садились на профиль
-    const arcWT = angleArcXZ(innW[2], [-1, 0], nrm((x0b + WB) - (x0t + WT), -H), rA, rlTop, `${wTop}°`, yF);
-    arcWT.at = [arcWT.at[0] - 30 * k, yF, arcWT.at[2] - 25 * k];
+    // фасадная рама: 82° — дуга во внутреннем правом верхнем углу, подпись слева-ниже у дуги
+    const arcWT = angleArcXZ(innW[2], [-1, 0], nrm((x0b + WB) - (x0t + WT), -H), rA, 68 * k, `${wTop}°`, yF);
+    arcWT.at = [innW[2][0] - 45 * k, yF, innW[2][1] - 55 * k];          // слева-ниже дуги, без наложений на профиль
     const arcWB = angleArcXZ(innW[1], [-1, 0], nrm((x0t + WT) - (x0b + WB), H), rA, rlBot, `${wBot}°`, yF);
     arcWB.at = [innW[1][0] - 24 * k, yF, innW[1][1] + 70 * k];          // ближе к дуге, выше угла — не на шаге боковой рамы
     // боковая рама: внутренние углы у наклона, в плоскости левой грани (YZ, координаты после mirrorY)
     const vST = [yf(innS[2][0]), innS[2][1]], vSB = [yf(innS[1][0]), innS[1][1]];
     const arcST = angleArcYZ(vST, [1, 0], nrm(yf(innS[1][0]) - yf(innS[2][0]), innS[1][1] - innS[2][1]), rA, rlTop, `${sTop}°`, xFace);
     arcST.at = [xFace, arcST.at[1] + 25 * k, arcST.at[2] - 20 * k];
-    const arcSB = angleArcYZ(vSB, [1, 0], nrm(yf(innS[2][0]) - yf(innS[1][0]), innS[2][1] - innS[1][1]), rA, rlBot, `${sBot}°`, xFace);
+    // 98° у низа наклона: дуга во внутреннем углу, подпись слева-сверху у дуги; можно заезжать на модель
+    const arcSB = angleArcYZ(vSB, [1, 0], nrm(yf(innS[2][0]) - yf(innS[1][0]), innS[2][1] - innS[1][1]), rA, 62 * k, `${sBot}°`, xFace);
+    arcSB.at = [xFace - 28 * k, vSB[0] + 10 * k, vSB[1] + 55 * k];     // слева-сверху от дуги, в проёме
+    arcSB.overGeom = true;
     return [dimLeft, dimSide, arcWT, arcWB, arcST, arcSB];
   },
   textLines: (p) => ["Ножка 0106", `Профиль ${findIn(PROFILES, p.profile).label} мм`, `Цвет: ${p.color}`,
