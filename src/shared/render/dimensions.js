@@ -6,6 +6,9 @@ const PT = 100 / 72;                           // matplotlib 100 dpi: 1 pt = 100
 export const pt = (v) => v * PT;
 const f = (v) => +v.toFixed(2);
 
+/** Angle of a dimension label in SVG (y down): in (−135°, 45°], so horizontal text reads left-to-right and vertical text bottom-to-top, never upside down. */
+const readableAng = (ang) => { if (ang > 45) ang -= 180; if (ang <= -135) ang += 180; return ang; };
+
 /**
  * d = { s0, s1 (3D points on the part), a, b (3D ends of the dimension line), text, shift (px along the line) }
  * ctx = { P2 (3D -> screen mm, y up), toPx (screen mm -> px), scale (px/mm), style:{ dimLW, fs, extGap(L,scale), extOver(scale) } }
@@ -40,16 +43,17 @@ export function buildDim(d, ctx) {
     svg.push(`<polygon points="${[tip, p1, p2].map((p) => f(p[0]) + "," + f(p[1])).join(" ")}" stroke="none"/>`);
     arrows.push([tip, p1], [p1, p2], [p2, tip]);
   }
-  // label: centred on the line (optionally shifted along it), rotated along it, kept readable (angle in [-90,90]), white box
+  // label: centred on the line (optionally shifted along it), rotated along it, kept readable (never upside down):
+  // more-horizontal — left-to-right; more-vertical — bottom-to-top, as a height dimension (SVG y-down).
   let mid = mul(add(A, B), 0.5);
   if (d.shift) mid = add(mid, mul(u, d.shift));
   let ang = (Math.atan2(dpx[1], dpx[0]) * 180) / Math.PI;                 // screen angle (px y down), clockwise positive == SVG rotate
-  if (ang > 90) ang -= 180; if (ang < -90) ang += 180;
+  ang = readableAng(ang);
   const size = pt(style.fs), lb = layoutBox(d.text, size), padp = pt(2.5);
   const boxW = lb.width + 2 * padp, boxH = lb.h + 2 * padp;
   if (d.lab && d.lab.rot) {                                                // свой угол подписи: вдоль проекции 3D-направления или горизонтально
     if (d.lab.rot === "h") ang = 0;
-    else { const v = P2(...d.lab.rot); ang = (Math.atan2(-v[1], v[0]) * 180) / Math.PI; if (ang > 90) ang -= 180; if (ang < -90) ang += 180; }
+    else { const v = P2(...d.lab.rot); ang = readableAng((Math.atan2(-v[1], v[0]) * 180) / Math.PI); }
   }
   if (d.lab && d.lab.push) { const v = P2(...d.lab.push[0]), nn = Math.hypot(v[0], v[1]); mid = add(mid, mul([v[0] / nn, -v[1] / nn], d.lab.push[1])); }
   if (!d.lab && d.out && (Math.abs(d.out) > 1 || boxW + 2 * hl > Ln)) mid = add(d.out > 0 ? B : A, mul(u, (d.out > 0 ? 1 : -1) * (boxW / 2 + 22) + (d.shift || 0)));   // label does not fit between the arrows: beyond the end
