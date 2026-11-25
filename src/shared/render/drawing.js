@@ -166,7 +166,12 @@ export function paintSvg(paint, P2, N, toPx, { maxEdge = 150, light = [-0.45, -0
 }
 
 export function buildDrawing({ solid, view, layout, makeDims, textLines, auto = true, margin = 8, extra = [], marks = [], soft = false, hlr = null, fills = [], textures = {}, paint = null }) {
-  const proj = projectSolid(solid, view.az, view.el, hlr);
+  let drawSolid = solid;
+  if (view.mirrorY) {
+    const bb = solid.boundingBox, midY = (bb.bounds[0][1] + bb.bounds[1][1]) / 2;
+    drawSolid = solid.clone().mirror("XZ", [0, midY, 0]);
+  }
+  const proj = projectSolid(drawSolid, view.az, view.el, hlr);
   const attempt = (layoutName, k, shrink, search) => {
     const dims = makeDims(k);
     const dimPts = [...dims.flatMap((d) => d.leader ? leaderPts(d, proj.P2) : d.arc ? arcPts(d, proj.P2) : [proj.P2(...d.a), proj.P2(...d.b)]), ...extra.flatMap(([a, b]) => [proj.P2(...a), proj.P2(...b)]), ...marks.flat().map((q) => proj.P2(...q))];
@@ -228,6 +233,7 @@ export function buildDrawing({ solid, view, layout, makeDims, textLines, auto = 
   const c0 = best.check, softOk = soft && !c0.ok && !c0.hdrVsLines && !c0.hdrVsDimSegs && !c0.hdrVsLabels && !c0.hdrVsHdr && !c0.labelVsGeom && !c0.outside.length && !c0.violatingLines.length;
   if (softOk) best.check = { ...c0, ok: true, soft: true, softConflicts: c0.labelVsLabel + c0.labelVsOtherDims };
   const svg = svgString({ ...best, fillsSvg: (paint ? paintSvg(paint, proj.P2, proj.N, best.toPx) : "") + (fills.length ? texturesSvg(fills, textures, proj.P2, proj.N, best.toPx) : "") });
+  if (drawSolid !== solid) { try { drawSolid.delete(); } catch { /* ok */ } }
   return { svg, W: best.W, H: best.H, toPx: best.toPx, P2: proj.P2, N: proj.N, check: best.check, projection: proj.checks, header: best.header,
     adjust: { attempts: n, layout: best.layoutName, offsetK: best.k, shrink: best.shrink, labelShifts: best.shifts.map(f2) } };
 }
