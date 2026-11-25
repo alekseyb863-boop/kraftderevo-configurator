@@ -6,7 +6,7 @@ import { dimAB } from "../render/dimhelpers.js";
 import { frameMembers, stripLen, dist3, sum } from "../lib/length.js";
 
 const controls = [range("W", "Ширина", 250, 1000, 10, 600), range("H", "Высота", 300, 1100, 10, 710), range("D", "Глубина", 100, 700, 10, 230),
-  profileCtl("40x20"), colorCtl("лофт")];
+  profileCtl("40x20"), colorCtl("черный")];
 export const spec = {
   id: "H028", type: "Ножка", category: "Ножки и опоры", name: "Ножка Н028", about: "Ножки для стола: рама с боковой рамой глубиной D", controls,
   normalize(raw) {

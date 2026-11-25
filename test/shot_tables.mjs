@@ -19,7 +19,7 @@ for (const [name, o] of [["desktop", { viewport: { width: 1500, height: 950 }, a
   ok(await st() === "top:false,legs:true", `${name}: открыт «Ножки», «Столешница» закрыт: ${await st()}`);
   await p.click('details.acc[data-acc="legs"] summary'); await p.waitForTimeout(100);
   ok(await st() === "top:false,legs:true", `${name}: повторный щелчок не закрывает единственный открытый блок`);
-  const n = await p.$$eval(".leg-tiles .tile", (t) => t.map((x) => x.textContent.trim()).join(" | ")); ok((await p.$$(".leg-tiles .tile")).length === 9, `${name}: 9 карточек ножек: ${n}`);
+  const n = await p.$$eval(".leg-tiles .tile", (t) => t.map((x) => x.textContent.trim()).join(" | ")); ok((await p.$$(".leg-tiles .tile")).length === 10, `${name}: 10 карточек ножек: ${n}`);
   ok(!(await p.$('details.acc[data-acc="legs"] [data-key="leg_W"]')) && !!(await p.$('[data-key="offW"]')) && !!(await p.$('[data-key="offL"]')) && !!(await p.$('[data-key="paint"]')), `${name}: Ширина ножки заменена отступами, есть «Окрашивание»`);
   await p.screenshot({ path: `${OUT}/ui_${name}_stoly_nozhki.png`, fullPage: name === "mobile" });
   await p.click('.leg-tiles .tile[data-article="TABLE_SHP3"]'); await wait(p, () => window.__configurator.last?.article === "TABLE_SHP3");
@@ -32,7 +32,7 @@ for (const [name, o] of [["desktop", { viewport: { width: 1500, height: 950 }, a
   if (name === "desktop") {
     for (const btn of ["#dl-png", "#dl-pdf", "#dl-stl"]) { const [d] = await Promise.all([p.waitForEvent("download", { timeout: 90000 }), p.click(btn)]); const f = `/tmp/${d.suggestedFilename()}`; await d.saveAs(f); ok(fs.statSync(f).size > 1000, `${name}: ${d.suggestedFilename()} ${fs.statSync(f).size} байт`); }
   }
-  for (const id of ["TABLE_H031", "TABLE_H050", "TABLE_H028", "TABLE_0090", "TABLE_H105", "TABLE_H114", "TABLE_H098", "TABLE_YOZH"]) {
+  for (const id of ["TABLE_H031", "TABLE_H050", "TABLE_H028", "TABLE_0106", "TABLE_0090", "TABLE_H105", "TABLE_H114", "TABLE_H098", "TABLE_YOZH"]) {
     await p.click(`.leg-tiles .tile[data-article="${id}"]`); await wait(p, (a) => window.__configurator.last?.article === a, id);
     const c = await p.evaluate(() => window.__checks); ok(c.solid === "OK" && c.overlap === "OK", `${name}: ${id} тело ${c.solid}, текст ${c.overlap}`);
   }

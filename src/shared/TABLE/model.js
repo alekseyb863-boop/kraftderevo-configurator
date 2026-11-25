@@ -1,4 +1,4 @@
-// Столы (вкладка «Столы»): столешница (как на вкладке «Столешницы») + ножки одного из 9 артикулов вкладки «Ножки».
+// Столы (вкладка «Столы»): столешница (как на вкладке «Столешницы») + ножки одного из 10 артикулов вкладки «Ножки».
 // Оси: X — длина столешницы, Y — ширина, Z — вверх; z = 0 — пол. Столешница: x ∈ [0, L], y ∈ [0, W], z ∈ [Hн, Hн + T] (Hн — высота ножек).
 // Ширина ножки (параметр «Ширина» артикула) не задаётся: = ширина столешницы − 2 × «Отступ по ширине от края столешницы».
 // «Отступ по длине от края столешницы» — расстояние от торца столешницы до наружной грани опоры (0 — вровень).
@@ -15,6 +15,7 @@ import { TOP_CONTROLS, topFills, topLines, fixTone, topSolid, topHlr } from "../
 import { spec as H031 } from "../H031/model.js";
 import { spec as H050 } from "../H050/model.js";
 import { spec as H028 } from "../H028/model.js";
+import { spec as A0106 } from "../0106/model.js";
 import { spec as A0090 } from "../0090/model.js";
 import { spec as H105 } from "../H105/model.js";
 import { spec as SHP3, PL as SHP3_ARM } from "../SHP3/model.js";
@@ -34,6 +35,7 @@ const LEGS = [
   { leg: H031, kind: "pair", w: "W" },
   { leg: H050, kind: "pair", w: "WT" },
   { leg: H028, kind: "pair", w: "W" },
+  { leg: A0106, kind: "pair", w: "WT" },   // 0106: ширина верха = ширина столешницы − 2·отступ; низ, глубины и профиль — свои
   { leg: A0090, kind: "pair", w: "W" },
   { leg: H105, kind: "pair", w: "WT", same: true },                     // Н105: правая опора — тот же поворот, что у левой (только перенос)
   { leg: SHP3, kind: "corner", w: null, arm: SHP3_ARM },
@@ -50,7 +52,7 @@ const bboxOf = (ss) => { const lo = [0, 1, 2].map((k) => Math.min(...ss.map((s) 
 
 function makeTable({ leg: LS, kind, w, l, arm, same }) {
   const own = LS.controls.filter((c) => c.key !== w && c.key !== l && c.key !== "color");
-  // высота ножек на вкладке «Столы» по умолчанию 710 мм (у всех 9 артикулов; на вкладке «Ножки» — свои значения)
+  // высота ножек на вкладке «Столы» по умолчанию 710 мм (у всех 10 артикулов; на вкладке «Ножки» — свои значения)
   const legCtls = own.map((c) => ({ ...c, key: PFX + c.key, group: "legs", ...(c.key === "H" ? { def: LEG_H_DEF } : {}), ...(c.depends ? { depends: PFX + c.depends } : {}) }));
   const tableCtls = [
     { ...range("offW", "Отступ по ширине от края столешницы", 0, 500, 1, 0), group: "legs", auto: LIVE_AUTO },
